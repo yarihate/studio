@@ -41,7 +41,7 @@ const generateStoryboardSketchesFlow = ai.defineFlow(
   async input => {
     const sketchPromises = input.shotDescriptions.map(async (shot) => {
         const { media } = await ai.generate({
-            model: ai.config.imageModel, // Use the configured image model
+            model: 'googleai/imagen-4.0-fast-generate-001',
             prompt: `Create a storyboard sketch for the following scene description. The sketch should be in a cinematic, black and white, pencil sketch style.\n\nScene Description: ${shot}`,
         });
         return media.url;

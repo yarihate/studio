@@ -9,6 +9,4 @@ const google = googleAI({
 export const ai = genkit({
   plugins: [google],
   model: 'googleai/gemini-2.5-flash',
-  // Let's also define our image model here for easy reference.
-  imageModel: 'googleai/imagen-4.0-fast-generate-001',
 });
