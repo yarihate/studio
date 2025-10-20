@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { handleExtractScenes, handleGenerateSketch } from '@/app/actions';
+import { handleExtractScenes, handleGenerateSketchesForScene } from '@/app/actions';
 import { AppHeader } from '@/components/app/header';
 import { ScenesSidebar } from '@/components/app/scenes-sidebar';
 import { ScriptForm } from '@/components/app/script-form';
@@ -57,15 +57,15 @@ export default function HomePage() {
 
   const handleGenerateSketchForScene = async (scene: Scene) => {
     setIsGeneratingSketches(prev => [...prev, scene.id]);
-    const sketchResult = await handleGenerateSketch(scene.description);
-    if (sketchResult.error || !sketchResult.sketchDataUri) {
+    const sketchResult = await handleGenerateSketchesForScene(scene.description);
+    if (sketchResult.error || !sketchResult.sketchDataUris) {
       toast({
         variant: 'destructive',
         title: `Error generating sketch for Scene ${scene.id}`,
         description: sketchResult.error,
       });
     } else {
-        const newSketch = { sceneId: scene.id, imageUrl: sketchResult.sketchDataUri };
+        const newSketch = { sceneId: scene.id, imageUrls: sketchResult.sketchDataUris };
         setSketches(prev => [...prev, newSketch]);
     }
     setIsGeneratingSketches(prev => prev.filter(id => id !== scene.id));

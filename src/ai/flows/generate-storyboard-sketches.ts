@@ -12,17 +12,17 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateStoryboardSketchesInputSchema = z.object({
-  sceneDescription: z
-    .string()
-    .describe('The description of the scene to generate a storyboard sketch for.'),
+  shotDescriptions: z
+    .array(z.string())
+    .describe('The descriptions of the shots to generate storyboard sketches for.'),
 });
 export type GenerateStoryboardSketchesInput = z.infer<typeof GenerateStoryboardSketchesInputSchema>;
 
 const GenerateStoryboardSketchesOutputSchema = z.object({
-  sketchDataUri: z
-    .string()
+  sketchDataUris: z
+    .array(z.string())
     .describe(
-      'A data URI containing the generated storyboard sketch image, must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'
+      'An array of data URIs for the generated storyboard sketch images.'
     ),
 });
 export type GenerateStoryboardSketchesOutput = z.infer<typeof GenerateStoryboardSketchesOutputSchema>;
@@ -40,10 +40,18 @@ const generateStoryboardSketchesFlow = ai.defineFlow(
     outputSchema: GenerateStoryboardSketchesOutputSchema,
   },
   async input => {
-    const {media} = await ai.generate({
-      model: 'googleai/imagen-4.0-fast-generate-001',
-      prompt: `Create a storyboard sketch for the following scene description. The sketch should be black and white.\n\nScene Description: ${input.sceneDescription}`,
+    const sketchPromises = input.shotDescriptions.map(async (shot) => {
+        const { media } = await ai.generate({
+            model: 'googleai/gemini-2.5-flash-image-preview',
+            prompt: `Create a storyboard sketch for the following scene description. The sketch should be in a cinematic, black and white, pencil sketch style.\n\nScene Description: ${shot}`,
+            config: {
+                responseModalities: ['IMAGE', 'TEXT'],
+            }
+        });
+        return media.url;
     });
-    return { sketchDataUri: media.url };
+
+    const sketchDataUris = await Promise.all(sketchPromises);
+    return { sketchDataUris };
   }
 );

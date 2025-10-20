@@ -7,6 +7,13 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
+import {
   Card,
   CardContent,
   CardDescription,
@@ -16,7 +23,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Download, Sparkles, Film, Plus, Wand, Loader2 } from 'lucide-react';
 import type {
   Scene,
@@ -126,40 +132,52 @@ export function StoryboardTabs({
           {isLoading ? (
              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Generating Sketch...</h3>
+                <h3 className="mt-4 text-lg font-semibold">Generating Sketches...</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
                     The AI is drawing, please wait a moment.
                 </p>
             </div>
-          ) : sketch ? (
-            <ImageCard
-              imageUrl={sketch.imageUrl}
-              title="AI Generated Sketch"
-              description="Initial black-and-white sketch based on the scene description."
-              imageHint="storyboard sketch"
-            >
-              <Button onClick={() => onEnhance(scene.id)}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Enhance
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleDownload(sketch.imageUrl, `scene-${scene.id}-sketch.png`)}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download
-              </Button>
-            </ImageCard>
+          ) : sketch && sketch.imageUrls.length > 0 ? (
+             <Carousel className="w-full">
+                <CarouselContent>
+                    {sketch.imageUrls.map((imageUrl, index) => (
+                        <CarouselItem key={index}>
+                            <div className="p-1">
+                                <ImageCard
+                                    imageUrl={imageUrl}
+                                    title={`AI Generated Sketch ${index + 1}`}
+                                    description="Initial black-and-white sketch based on a shot from the scene description."
+                                    imageHint="storyboard sketch"
+                                >
+                                    <Button onClick={() => onEnhance(scene.id)}>
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Enhance
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => handleDownload(imageUrl, `scene-${scene.id}-sketch-${index + 1}.png`)}
+                                    >
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Download
+                                    </Button>
+                                </ImageCard>
+                            </div>
+                        </CarouselItem>
+                    ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+            </Carousel>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
                 <Wand className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">No Sketch Generated</h3>
+                <h3 className="mt-4 text-lg font-semibold">No Sketches Generated</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    Click the button below to generate an AI sketch for this scene.
+                    Click the button below to generate AI sketches for this scene.
                 </p>
                 <Button className="mt-4" onClick={onGenerateSketch}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Generate Sketch
+                    Generate Sketches
                 </Button>
             </div>
           )}

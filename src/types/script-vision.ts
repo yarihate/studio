@@ -5,7 +5,7 @@ export interface Scene {
 
 export interface Sketch {
   sceneId: number;
-  imageUrl: string;
+  imageUrls: string[];
 }
 
 export interface DetailedImage {
