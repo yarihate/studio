@@ -1,4 +1,3 @@
-// src/ai/flows/generate-storyboard-sketches.ts
 'use server';
 /**
  * @fileOverview Generates storyboard sketches for scenes extracted from a script.
@@ -42,11 +41,8 @@ const generateStoryboardSketchesFlow = ai.defineFlow(
   async input => {
     const sketchPromises = input.shotDescriptions.map(async (shot) => {
         const { media } = await ai.generate({
-            model: 'googleai/gemini-2.5-flash-image-preview',
+            model: 'googleai/imagen-4.0-fast-generate-001',
             prompt: `Create a storyboard sketch for the following scene description. The sketch should be in a cinematic, black and white, pencil sketch style.\n\nScene Description: ${shot}`,
-            config: {
-                responseModalities: ['IMAGE', 'TEXT'],
-            }
         });
         return media.url;
     });
