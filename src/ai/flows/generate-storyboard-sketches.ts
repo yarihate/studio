@@ -33,19 +33,6 @@ export async function generateStoryboardSketches(
   return generateStoryboardSketchesFlow(input);
 }
 
-const storyboardSketchPrompt = ai.definePrompt({
-  name: 'storyboardSketchPrompt',
-  input: {schema: GenerateStoryboardSketchesInputSchema},
-  output: {schema: GenerateStoryboardSketchesOutputSchema},
-  prompt: `You are a storyboard artist. Create a storyboard sketch for the following scene description. The sketch should be black and white.
-
-Scene Description: {{{sceneDescription}}}
-
-Output the image as a data URI.
-
-Ensure the sketch accurately represents the scene's key elements, characters, and mood.`, // Updated prompt
-});
-
 const generateStoryboardSketchesFlow = ai.defineFlow(
   {
     name: 'generateStoryboardSketchesFlow',
