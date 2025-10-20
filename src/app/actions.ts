@@ -13,7 +13,8 @@ export async function handleExtractScenes(scriptContent: string) {
     return { scenes: result.scenes };
   } catch (error) {
     console.error('Error extracting scenes:', error);
-    return { error: 'Failed to extract scenes from the script.' };
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { error: `Failed to extract scenes from the script: ${errorMessage}` };
   }
 }
 
@@ -31,6 +32,7 @@ export async function handleGenerateSketchesForScene(sceneDescription: string) {
     return { sketchDataUris: sketchResult.sketchDataUris };
   } catch (error) {
     console.error('Error generating sketches:', error);
-    return { error: 'Failed to generate sketches for the scene.' };
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { error: `Failed to generate sketches for the scene: ${errorMessage}` };
   }
 }
