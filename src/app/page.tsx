@@ -12,7 +12,8 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Animation, DetailedImage, Scene, Sketch } from '@/types/script-vision';
 
 export default function HomePage() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isExtractingScenes, setIsExtractingScenes] = useState(false);
+  const [isGeneratingSketches, setIsGeneratingSketches] = useState<number[]>([]);
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [sketches, setSketches] = useState<Sketch[]>([]);
   const [detailedImages, setDetailedImages] = useState<DetailedImage[]>([]);
@@ -25,7 +26,10 @@ export default function HomePage() {
   const { toast } = useToast();
 
   const handleScriptSubmit = async (script: string) => {
-    setIsLoading(true);
+    setIsExtractingScenes(true);
+    setSketches([]);
+    setDetailedImages([]);
+    setAnimations([]);
 
     const sceneResult = await handleExtractScenes(script);
 
@@ -36,7 +40,7 @@ export default function HomePage() {
         description:
           sceneResult.error || 'An unknown error occurred while extracting scenes.',
       });
-      setIsLoading(false);
+      setIsExtractingScenes(false);
       return;
     }
 
@@ -46,28 +50,27 @@ export default function HomePage() {
     }));
     setScenes(newScenes);
     setSelectedSceneId(newScenes[0]?.id || null);
+    setIsExtractingScenes(false);
 
-    const sketchPromises = newScenes.map(async (scene) => {
-      const sketchResult = await handleGenerateSketch(scene.description);
-      if (sketchResult.error || !sketchResult.sketchDataUri) {
-        toast({
-          variant: 'destructive',
-          title: `Error generating sketch for Scene ${scene.id}`,
-          description: sketchResult.error,
-        });
-        return { sceneId: scene.id, imageUrl: '' };
-      }
-      return { sceneId: scene.id, imageUrl: sketchResult.sketchDataUri };
-    });
-
-    const settledSketches = await Promise.allSettled(sketchPromises);
-    const newSketches = settledSketches
-      .map((result) => (result.status === 'fulfilled' ? result.value : null))
-      .filter((s): s is Sketch => s !== null && s.imageUrl !== '');
-
-    setSketches(newSketches);
-    setIsLoading(false);
+    // Don't auto-generate sketches
   };
+
+  const handleGenerateSketchForScene = async (scene: Scene) => {
+    setIsGeneratingSketches(prev => [...prev, scene.id]);
+    const sketchResult = await handleGenerateSketch(scene.description);
+    if (sketchResult.error || !sketchResult.sketchDataUri) {
+      toast({
+        variant: 'destructive',
+        title: `Error generating sketch for Scene ${scene.id}`,
+        description: sketchResult.error,
+      });
+    } else {
+        const newSketch = { sceneId: scene.id, imageUrl: sketchResult.sketchDataUri };
+        setSketches(prev => [...prev, newSketch]);
+    }
+    setIsGeneratingSketches(prev => prev.filter(id => id !== scene.id));
+  };
+
 
   const handleEnhanceSketch = (sceneId: number) => {
     const placeholder = PlaceHolderImages.find((img) => img.id === 'detailed-view');
@@ -133,8 +136,10 @@ export default function HomePage() {
   };
 
   if (scenes.length === 0) {
-    return <ScriptForm onSubmit={handleScriptSubmit} isLoading={isLoading} />;
+    return <ScriptForm onSubmit={handleScriptSubmit} isLoading={isExtractingScenes} />;
   }
+
+  const selectedScene = scenes.find((s) => s.id === selectedSceneId);
 
   return (
     <SidebarProvider>
@@ -147,7 +152,7 @@ export default function HomePage() {
         <AppHeader />
         <main className="flex-1 overflow-auto p-4 md:p-6">
           <StoryboardTabs
-            scene={scenes.find((s) => s.id === selectedSceneId)}
+            scene={selectedScene}
             sketch={sketches.find((s) => s.sceneId === selectedSceneId)}
             detailedImages={detailedImages.filter(
               (img) => img.sceneId === selectedSceneId
@@ -159,7 +164,8 @@ export default function HomePage() {
             onSelectForAnimation={handleSelectDetailedImage}
             selectedForAnimation={selectedDetailedImageIds}
             onAnimate={handleGenerateAnimation}
-            isLoading={isLoading && sketches.length < scenes.length}
+            isLoading={isGeneratingSketches.includes(selectedScene?.id ?? -1)}
+            onGenerateSketch={() => selectedScene && handleGenerateSketchForScene(selectedScene)}
           />
         </main>
       </SidebarInset>

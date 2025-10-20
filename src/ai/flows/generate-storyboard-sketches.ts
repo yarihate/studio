@@ -22,7 +22,7 @@ const GenerateStoryboardSketchesOutputSchema = z.object({
   sketchDataUri: z
     .string()
     .describe(
-      'A data URI containing the generated storyboard sketch image, must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.' 
+      'A data URI containing the generated storyboard sketch image, must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'
     ),
 });
 export type GenerateStoryboardSketchesOutput = z.infer<typeof GenerateStoryboardSketchesOutputSchema>;
@@ -58,7 +58,5 @@ const generateStoryboardSketchesFlow = ai.defineFlow(
       prompt: `Create a storyboard sketch for the following scene description. The sketch should be black and white.\n\nScene Description: ${input.sceneDescription}`,
     });
     return { sketchDataUri: media.url };
-    //const {output} = await storyboardSketchPrompt(input);
-    //return output!;
   }
 );

@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Download, Sparkles, Film, Plus } from 'lucide-react';
+import { Download, Sparkles, Film, Plus, Wand, Loader2 } from 'lucide-react';
 import type {
   Scene,
   Sketch,
@@ -35,6 +35,7 @@ type StoryboardTabsProps = {
   selectedForAnimation: number[];
   onAnimate: () => void;
   isLoading: boolean;
+  onGenerateSketch: () => void;
 };
 
 const ImageCard = ({
@@ -81,6 +82,7 @@ export function StoryboardTabs({
   selectedForAnimation,
   onAnimate,
   isLoading,
+  onGenerateSketch,
 }: StoryboardTabsProps) {
   if (!scene) {
     return (
@@ -122,7 +124,13 @@ export function StoryboardTabs({
 
         <TabsContent value="sketches" className="mt-4">
           {isLoading ? (
-            <Skeleton className="aspect-video w-full rounded-lg" />
+             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-semibold">Generating Sketch...</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                    The AI is drawing, please wait a moment.
+                </p>
+            </div>
           ) : sketch ? (
             <ImageCard
               imageUrl={sketch.imageUrl}
@@ -143,7 +151,17 @@ export function StoryboardTabs({
               </Button>
             </ImageCard>
           ) : (
-            <p>No sketch available for this scene.</p>
+            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
+                <Wand className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-semibold">No Sketch Generated</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                    Click the button below to generate an AI sketch for this scene.
+                </p>
+                <Button className="mt-4" onClick={onGenerateSketch}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Generate Sketch
+                </Button>
+            </div>
           )}
         </TabsContent>
 
@@ -191,9 +209,9 @@ export function StoryboardTabs({
                 <p className="mt-2 text-sm text-muted-foreground">
                     Enhance a sketch to generate ultra-realistic images.
                 </p>
-                <Button className="mt-4" onClick={() => onEnhance(scene.id)}>
+                <Button className="mt-4" onClick={() => onEnhance(scene.id)} disabled={!sketch}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Enhance First Sketch
+                    Enhance Sketch
                 </Button>
             </div>
           )}
