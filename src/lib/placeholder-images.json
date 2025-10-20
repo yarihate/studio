@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "detailed-view",
+      "description": "A detailed, realistic image.",
+      "imageUrl": "https://images.unsplash.com/photo-1658933864678-9719d4eae248?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxyZWFsaXN0aWMlMjBwaG90b2dyYXBoeXxlbnwwfHx8fDE3NjA5ODE3NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "realistic photography"
+    },
+    {
+      "id": "animation-preview",
+      "description": "An animated sequence preview.",
+      "imageUrl": "https://images.unsplash.com/photo-1655388506739-08eb029df45c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhbmltYXRpb24lMjBzZXF1ZW5jZXxlbnwwfHx8fDE3NjA5ODE3NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "animation sequence"
+    }
+  ]
 }
