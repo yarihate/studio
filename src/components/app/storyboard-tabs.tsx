@@ -42,6 +42,9 @@ type StoryboardTabsProps = {
   onAnimate: () => void;
   isLoading: boolean;
   onGenerateSketch: () => void;
+  selectedSketchUrls: string[];
+  onSelectSketch: (imageUrl: string) => void;
+  onDownloadSelectedSketches: () => void;
 };
 
 const ImageCard = ({
@@ -112,6 +115,9 @@ export function StoryboardTabs({
   onAnimate,
   isLoading,
   onGenerateSketch,
+  selectedSketchUrls,
+  onSelectSketch,
+  onDownloadSelectedSketches,
 }: StoryboardTabsProps) {
   if (!scene) {
     return (
@@ -130,25 +136,36 @@ export function StoryboardTabs({
     document.body.removeChild(link);
   };
 
+  const currentTab = React.useRef('sketches');
+  const isSketchTabActive = currentTab.current === 'sketches';
+
   return (
     <div>
       <div className="mb-4">
         <h2 className="text-2xl font-bold font-headline">Scene {scene.id}</h2>
         <p className="text-muted-foreground">{scene.description}</p>
       </div>
-      <Tabs defaultValue="sketches">
+      <Tabs defaultValue="sketches" onValueChange={(value) => currentTab.current = value}>
         <div className="flex items-center justify-between">
             <TabsList>
                 <TabsTrigger value="sketches">Sketches</TabsTrigger>
                 <TabsTrigger value="detailed">Detailed Images</TabsTrigger>
                 <TabsTrigger value="animations">Animations</TabsTrigger>
             </TabsList>
-            {detailedImages.length > 0 && (
-                <Button onClick={onAnimate} disabled={selectedForAnimation.length !== 2}>
-                    <Film className="mr-2 h-4 w-4" />
-                    Generate Animation
-                </Button>
-            )}
+            <div className="flex items-center gap-2">
+                 {sketch && sketch.imageUrls.length > 0 && (
+                    <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Selected
+                    </Button>
+                )}
+                {detailedImages.length > 0 && (
+                    <Button onClick={onAnimate} disabled={selectedForAnimation.length !== 2}>
+                        <Film className="mr-2 h-4 w-4" />
+                        Generate Animation
+                    </Button>
+                )}
+            </div>
         </div>
 
         <TabsContent value="sketches" className="mt-4">
@@ -166,30 +183,33 @@ export function StoryboardTabs({
                     {sketch.imageUrls.map((imageUrl, index) => (
                         <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                             <div className="p-1">
-                                <ImageCard
-                                    imageUrl={imageUrl}
-                                    title={`AI Generated Sketch ${index + 1}`}
-                                    description="Initial black-and-white sketch based on a shot from the scene description."
-                                    imageHint="storyboard sketch"
-                                    width={480}
-                                    height={480}
-                                    isSquare={true}
-                                    showCheckbox={true}
-                                    isChecked={false} // Placeholder
-                                    onCheckedChange={() => {}} // Placeholder
-                                >
-                                    <Button onClick={() => onEnhance(scene.id)}>
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        Enhance
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => handleDownload(imageUrl, `scene-${scene.id}-sketch-${index + 1}.png`)}
-                                    >
-                                        <Download className="mr-2 h-4 w-4" />
-                                        Download
-                                    </Button>
-                                </ImageCard>
+                                <Card className="overflow-hidden">
+                                    <CardContent className="p-0">
+                                        <div className="relative group aspect-square">
+                                            <Image
+                                                src={imageUrl}
+                                                alt={`AI Generated Sketch ${index + 1}`}
+                                                width={480}
+                                                height={480}
+                                                className="h-full w-full object-cover"
+                                                data-ai-hint="storyboard sketch"
+                                            />
+                                            <div className="absolute top-2 right-2">
+                                                <Checkbox
+                                                    checked={selectedSketchUrls.includes(imageUrl)}
+                                                    onCheckedChange={() => onSelectSketch(imageUrl)}
+                                                    className="h-6 w-6 border-white bg-black/20 data-[state=checked]:bg-primary"
+                                                />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter className="p-4">
+                                        <Button onClick={() => onEnhance(scene.id)} className="w-full">
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Enhance
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
                             </div>
                         </CarouselItem>
                     ))}

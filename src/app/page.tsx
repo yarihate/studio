@@ -22,6 +22,7 @@ export default function HomePage() {
   const [selectedDetailedImageIds, setSelectedDetailedImageIds] = useState<
     number[]
   >([]);
+  const [selectedSketchUrls, setSelectedSketchUrls] = useState<string[]>([]);
 
   const { toast } = useToast();
 
@@ -30,6 +31,7 @@ export default function HomePage() {
     setSketches([]);
     setDetailedImages([]);
     setAnimations([]);
+    setSelectedSketchUrls([]);
 
     const sceneResult = await handleExtractScenes(script);
 
@@ -51,12 +53,11 @@ export default function HomePage() {
     setScenes(newScenes);
     setSelectedSceneId(newScenes[0]?.id || null);
     setIsExtractingScenes(false);
-
-    // Don't auto-generate sketches
   };
 
   const handleGenerateSketchForScene = async (scene: Scene) => {
     setIsGeneratingSketches(prev => [...prev, scene.id]);
+    setSelectedSketchUrls([]); // Clear selection when regenerating
     const sketchResult = await handleGenerateSketchesForScene(scene.description);
     if (sketchResult.error || !sketchResult.sketchDataUris) {
       toast({
@@ -66,7 +67,10 @@ export default function HomePage() {
       });
     } else {
         const newSketch = { sceneId: scene.id, imageUrls: sketchResult.sketchDataUris };
-        setSketches(prev => [...prev, newSketch]);
+        setSketches(prev => {
+          const otherSketches = prev.filter(s => s.sceneId !== scene.id);
+          return [...otherSketches, newSketch];
+        });
     }
     setIsGeneratingSketches(prev => prev.filter(id => id !== scene.id));
   };
@@ -111,6 +115,44 @@ export default function HomePage() {
     });
   };
 
+  const handleSelectSketch = (imageUrl: string) => {
+    setSelectedSketchUrls(prev => {
+      if (prev.includes(imageUrl)) {
+        return prev.filter(url => url !== imageUrl);
+      }
+      return [...prev, imageUrl];
+    });
+  };
+
+  const handleDownloadSelectedSketches = () => {
+    if (selectedSketchUrls.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No sketches selected',
+        description: 'Please select one or more sketches to download.',
+      });
+      return;
+    }
+    
+    // This is a simplified download for multiple files.
+    // In a real app, you might zip them on the server or use a library.
+    selectedSketchUrls.forEach((url, index) => {
+      const link = document.createElement('a');
+      link.href = url;
+      // derive a filename
+      const sceneId = sketches.find(s => s.imageUrls.includes(url))?.sceneId;
+      link.download = `scene-${sceneId}-sketch-${index + 1}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    toast({
+      title: 'Download Started',
+      description: `Downloading ${selectedSketchUrls.length} sketch(es).`,
+    });
+  };
+
   const handleGenerateAnimation = () => {
     if (selectedDetailedImageIds.length !== 2) return;
     const placeholder = PlaceHolderImages.find((img) => img.id === 'animation-preview');
@@ -135,18 +177,22 @@ export default function HomePage() {
     });
   };
 
+  const selectedScene = scenes.find((s) => s.id === selectedSceneId);
+  
   if (scenes.length === 0) {
     return <ScriptForm onSubmit={handleScriptSubmit} isLoading={isExtractingScenes} />;
   }
 
-  const selectedScene = scenes.find((s) => s.id === selectedSceneId);
 
   return (
     <SidebarProvider>
       <ScenesSidebar
         scenes={scenes}
         selectedSceneId={selectedSceneId}
-        onSelectScene={setSelectedSceneId}
+        onSelectScene={(id) => {
+          setSelectedSceneId(id);
+          setSelectedSketchUrls([]); // Reset selection when changing scenes
+        }}
       />
       <SidebarInset>
         <AppHeader />
@@ -166,6 +212,9 @@ export default function HomePage() {
             onAnimate={handleGenerateAnimation}
             isLoading={isGeneratingSketches.includes(selectedScene?.id ?? -1)}
             onGenerateSketch={() => selectedScene && handleGenerateSketchForScene(selectedScene)}
+            selectedSketchUrls={selectedSketchUrls}
+            onSelectSketch={handleSelectSketch}
+            onDownloadSelectedSketches={handleDownloadSelectedSketches}
           />
         </main>
       </SidebarInset>
