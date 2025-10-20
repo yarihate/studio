@@ -50,12 +50,16 @@ const ImageCard = ({
   description,
   imageHint,
   children,
+  width = 1024,
+  height = 576,
 }: {
   imageUrl: string;
   title: string;
   description: string;
   imageHint: string;
   children: React.ReactNode;
+  width?: number;
+  height?: number;
 }) => (
   <Card className="overflow-hidden">
     <CardHeader>
@@ -67,8 +71,8 @@ const ImageCard = ({
         <Image
           src={imageUrl}
           alt={description}
-          width={1024}
-          height={576}
+          width={width}
+          height={height}
           className="h-full w-full object-cover transition-transform hover:scale-105"
           data-ai-hint={imageHint}
         />
@@ -141,13 +145,15 @@ export function StoryboardTabs({
              <Carousel className="w-full">
                 <CarouselContent>
                     {sketch.imageUrls.map((imageUrl, index) => (
-                        <CarouselItem key={index}>
+                        <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                             <div className="p-1">
                                 <ImageCard
                                     imageUrl={imageUrl}
                                     title={`AI Generated Sketch ${index + 1}`}
                                     description="Initial black-and-white sketch based on a shot from the scene description."
                                     imageHint="storyboard sketch"
+                                    width={480}
+                                    height={480}
                                 >
                                     <Button onClick={() => onEnhance(scene.id)}>
                                         <Sparkles className="mr-2 h-4 w-4" />
