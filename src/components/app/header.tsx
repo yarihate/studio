@@ -7,10 +7,10 @@ import { Download } from "lucide-react";
 export function AppHeader() {
   const { toast } = useToast();
 
-  const handleDownloadProject = () => {
+  const handleDownload = () => {
     toast({
       title: "Feature not available",
-      description: "Downloading the entire project is not yet implemented.",
+      description: "Downloading the current view is not yet implemented.",
     });
   };
 
@@ -20,9 +20,9 @@ export function AppHeader() {
       <div className="w-full flex-1">
         <h1 className="text-lg font-semibold md:text-2xl font-headline">ScriptVision AI</h1>
       </div>
-      <Button onClick={handleDownloadProject}>
+      <Button onClick={handleDownload} variant="outline">
         <Download className="mr-2 h-4 w-4" />
-        Download Project
+        Export
       </Button>
     </header>
   );

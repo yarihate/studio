@@ -52,6 +52,10 @@ const ImageCard = ({
   children,
   width = 1024,
   height = 576,
+  isSquare = false,
+  showCheckbox = false,
+  isChecked = false,
+  onCheckedChange,
 }: {
   imageUrl: string;
   title: string;
@@ -60,6 +64,10 @@ const ImageCard = ({
   children: React.ReactNode;
   width?: number;
   height?: number;
+  isSquare?: boolean;
+  showCheckbox?: boolean;
+  isChecked?: boolean;
+  onCheckedChange?: () => void;
 }) => (
   <Card className="overflow-hidden">
     <CardHeader>
@@ -67,15 +75,26 @@ const ImageCard = ({
       <CardDescription>{description}</CardDescription>
     </CardHeader>
     <CardContent>
-      <div className="aspect-video w-full overflow-hidden rounded-lg border">
-        <Image
-          src={imageUrl}
-          alt={description}
-          width={width}
-          height={height}
-          className="h-full w-full object-cover transition-transform hover:scale-105"
-          data-ai-hint={imageHint}
-        />
+      <div className={`w-full overflow-hidden rounded-lg border ${isSquare ? 'aspect-square' : 'aspect-video'}`}>
+        <div className="relative group h-full w-full">
+            <Image
+              src={imageUrl}
+              alt={description}
+              width={width}
+              height={height}
+              className="h-full w-full object-cover transition-transform hover:scale-105"
+              data-ai-hint={imageHint}
+            />
+             {showCheckbox && (
+                <div className="absolute top-2 right-2">
+                    <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={onCheckedChange}
+                        className="h-6 w-6 border-white bg-black/20 data-[state=checked]:bg-primary"
+                    />
+                </div>
+            )}
+        </div>
       </div>
     </CardContent>
     <CardFooter className="gap-2">{children}</CardFooter>
@@ -154,6 +173,10 @@ export function StoryboardTabs({
                                     imageHint="storyboard sketch"
                                     width={480}
                                     height={480}
+                                    isSquare={true}
+                                    showCheckbox={true}
+                                    isChecked={false} // Placeholder
+                                    onCheckedChange={() => {}} // Placeholder
                                 >
                                     <Button onClick={() => onEnhance(scene.id)}>
                                         <Sparkles className="mr-2 h-4 w-4" />
