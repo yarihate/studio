@@ -10,17 +10,18 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { SceneDetailsSchema } from '@/types/script-vision';
 
 const ExtractScenesFromScriptInputSchema = z.object({
   scriptContent: z.string().describe('The content of the script to extract scenes from.'),
 });
 export type ExtractScenesFromScriptInput = z.infer<typeof ExtractScenesFromScriptInputSchema>;
 
+
 const ExtractScenesFromScriptOutputSchema = z.object({
-  scenes: z.array(
-    z.string().describe('A scene extracted from the script.')
-  ).describe('The extracted scenes from the script.')
+    scenes: z.array(SceneDetailsSchema).describe('The extracted scenes from the script.'),
 });
+
 export type ExtractScenesFromScriptOutput = z.infer<typeof ExtractScenesFromScriptOutputSchema>;
 
 export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<ExtractScenesFromScriptOutput> {
@@ -31,68 +32,43 @@ const extractScenesPrompt = ai.definePrompt({
   name: 'extractScenesPrompt',
   input: {schema: ExtractScenesFromScriptInputSchema},
   output: {schema: ExtractScenesFromScriptOutputSchema},
-  prompt: `You are an experienced film concept designer and video generation expert. Based on the given image, conduct a detailed analysis and generate a highly detailed and professional video prompt in JSON format for a 5-second video.
-Please strictly adhere to the following JSON structure and content specifications. Each field should be as specific, vivid, and imaginative as possible to capture real-world filmmaking details.
+  prompt: `You are an experienced film concept designer. Your task is to analyze the provided script and break it down into distinct scenes. For each scene, you must extract detailed information and format it into a JSON object. Please strictly adhere to the following JSON structure and content specifications.
+
 --------------------------------------------------------------------------------
-**JSON Structure Template:**
+**JSON Structure Template For Each Scene:**
 {
+  "description": "A one-sentence summary of the scene.",
   "shot": {
-    "composition": "string",
-    "camera_motion": "string"
+    "composition": "Describe shot type (e.g., wide shot, medium shot, close-up), focal length, camera, and depth of field.",
+    "camera_motion": "Describe camera movement (e.g., static, pan, dolly, crane)."
   },
   "subject": {
-    "description": "string",
-    "wardrobe": "string" // Use "null" if the subject is an animal or has no specific wardrobe
+    "description": "Detailed description of the main subject (character, animal, or object), including appearance, age, ethnicity, and unique features.",
+    "wardrobe": "Describe the subject's clothing. Use 'N/A' if not applicable."
   },
   "scene": {
-    "location": "string",
-    "time_of_day": "string",
-    "environment": "string"
+    "location": "Specify the exact location.",
+    "time_of_day": "Specify the time (e.g., dawn, midday, night).",
+    "environment": "Describe the surrounding environment and atmosphere."
   },
   "visual_details": {
-    "action": "string",
-    "props": "string", // Use "null" if there are no props
-    "action_sequence": "array of objects"
+    "action": "A summary of the main action in the scene.",
+    "props": "List all relevant props. Use 'N/A' if there are none."
   },
   "cinematography": {
-    "lighting": "string",
-    "tone": "string"
+    "lighting": "Describe the lighting (e.g., natural light, campfire, soft HDR).",
+    "tone": "Describe the emotional or stylistic feel (e.g., fierce, mystical, dreamy, realistic)."
   }
 }
 --------------------------------------------------------------------------------
-**Content Generation Guidelines (Please keep these principles in mind during generation):**
+**Content Generation Guidelines:**
 
-**1. shot**
-*   **composition**: Describe the shot type in detail (e.g., wide shot, medium shot, close-up, long shot), focal length (e.g., 35mm lens, 85mm lens, 50mm lens, 100mm macro telephoto lens, 26mm equivalent lens), camera equipment (e.g., Sony Venice, ARRI Alexa series, RED series, iPhone 15 Pro Max, DJI Inspire 3 drone), and depth of field (e.g., deep depth of field, shallow depth of field).
-*   **camera_motion**: Precisely describe how the camera moves (e.g., smooth Steadicam arc, slow lateral dolly, static, handheld shake, slow pan, drone orbit, rising crane).
+*   **Scene Separation**: Identify each distinct scene in the script. A scene is defined by a change in location or a significant jump in time.
+*   **Granularity of Detail**: Fill in each field with as much specific detail as can be inferred from the script. If a detail is not present, use a sensible default or state that it's not specified.
+*   **Consistency**: Ensure every scene object in the output array follows the specified JSON structure.
+*   **Language**: Use clear, concise, professional filmmaking terminology.
 
-**2. subject**
-*   **description**: Provide an extremely detailed depiction of the subject, including their age (e.g., 25-year-old, 23-year-old, 40-year-old, 92-year-old), gender, ethnicity (e.g., Chinese female, Egyptian female, K-pop artist, European female, East Asian female, African male, Korean female, German female, Italian female, Japanese), body type (e.g., slender and athletic), hair (color, style), and any unique facial features. For non-human subjects (e.g., beluga whale, phoenix, emu, golden eagle, duck, snail), describe their physical characteristics in detail.
-
-**3. scene**
-*   **location**: Specify the exact shooting location.
-*   **time_of_day**: State the specific time of day (e.g., dawn, early morning, morning, midday, afternoon, dusk, night).
-*   **environment**: Provide a detailed environmental description that captures the atmosphere and background details.
-
-**4. visual_details**
-*   **action**: A general summary of the action depicted in the video.
-*   **action_sequence**: To enhance the visual tension of the generated 5s video, analyze the image and expand upon it creatively. Design a key action for each second, using the format \`"0-1s: subject + action"\` to briefly and precisely describe the action occurring in that second.
-*   **props**: List all relevant props and elements in the scene (e.g., silver-hilted sword, campfire, candelabra, matcha latte and cheesecake, futuristic motorcycle). If there are no props in the scene, this field should be explicitly set to \`"null"\`.
-
-**5. cinematography**
-*   **lighting**: Describe the light source, quality, color, and direction in detail (e.g., natural dawn light softened by fog, campfire as the key light, natural sunlight through stained glass windows, soft HDR reflections, warm tungsten light and natural window light).
-*   **tone**: Capture the abstract emotional or stylistic feel of the video (e.g., "fierce, elegant, fluid", "mystical, elegant, enchanting", "hyperrealistic with an ironic, dark comedic twist", "dreamy, serene, emotionally healing", "documentary realism", "epic, majestic, awe-inspiring", "wild, dynamic, uninhibited").
-
---------------------------------------------------------------------------------
-**Additional Considerations for Prompt Generation:**
-
-*   **Granularity of Detail**: The LLM should understand that every field requires as much specific detail as possible, not generalizations. For example, instead of writing "a woman," write "a 25-year-old Chinese female with long black hair tied back with a silk ribbon, a slender build, wearing a flowing, pale blue Hanfu...".
-*   **Consistency and Diversity**: While the JSON structure must be strictly consistent, the content of each video prompt should be creative and diverse, reflecting the unique elements of different video types (e.g., martial arts, dance, drama, nature documentary, sci-fi action, motivational, commercial, fantasy).
-*   **Handling Null Values**: When a field is not applicable (e.g., wardrobe for an animal), the LLM should use \`null\` rather than an empty string or omitting the field, to maintain the integrity of the JSON structure.
-*   **Contextual Description**: When describing action, lighting, and sound, think about how these elements work together to create a specific **"tone"** and express it using vivid language.
-*   **Language Requirements**: All output should be clear, concise, and use professional filmmaking terminology.
-
-Here is the script content:
+Here is the script content to analyze:
   {{scriptContent}}
   `,
 });

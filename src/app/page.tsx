@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { handleExtractScenes, handleGenerateSketchesForScene } from '@/app/actions';
 import { AppHeader } from '@/components/app/header';
 import { ScenesSidebar } from '@/components/app/scenes-sidebar';
@@ -46,9 +46,9 @@ export default function HomePage() {
       return;
     }
 
-    const newScenes = sceneResult.scenes.map((desc, index) => ({
+    const newScenes = sceneResult.scenes.map((details, index) => ({
       id: index + 1,
-      description: desc,
+      details: details,
     }));
     setScenes(newScenes);
     setSelectedSceneId(newScenes[0]?.id || null);
@@ -58,7 +58,7 @@ export default function HomePage() {
   const handleGenerateSketchForScene = async (scene: Scene) => {
     setIsGeneratingSketches(prev => [...prev, scene.id]);
     setSelectedSketchUrls([]); // Clear selection when regenerating
-    const sketchResult = await handleGenerateSketchesForScene(scene.description);
+    const sketchResult = await handleGenerateSketchesForScene(scene.details.description);
     if (sketchResult.error || !sketchResult.sketchDataUris) {
       toast({
         variant: 'destructive',
@@ -134,12 +134,9 @@ export default function HomePage() {
       return;
     }
     
-    // This is a simplified download for multiple files.
-    // In a real app, you might zip them on the server or use a library.
     selectedSketchUrls.forEach((url, index) => {
       const link = document.createElement('a');
       link.href = url;
-      // derive a filename
       const sceneId = sketches.find(s => s.imageUrls.includes(url))?.sceneId;
       link.download = `scene-${sceneId}-sketch-${index + 1}.png`;
       document.body.appendChild(link);

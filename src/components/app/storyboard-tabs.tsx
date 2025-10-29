@@ -17,7 +17,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -31,6 +30,7 @@ import type {
   DetailedImage as DetailedImageType,
   Animation,
 } from '@/types/script-vision';
+import { Badge } from '../ui/badge';
 
 type StoryboardTabsProps = {
   scene: Scene | undefined;
@@ -48,62 +48,16 @@ type StoryboardTabsProps = {
   onDownloadSelectedSketches: () => void;
 };
 
-const ImageCard = ({
-  imageUrl,
-  title,
-  description,
-  imageHint,
-  children,
-  width = 1024,
-  height = 576,
-  isSquare = false,
-  showCheckbox = false,
-  isChecked = false,
-  onCheckedChange,
-}: {
-  imageUrl: string;
-  title: string;
-  description: string;
-  imageHint: string;
-  children: React.ReactNode;
-  width?: number;
-  height?: number;
-  isSquare?: boolean;
-  showCheckbox?: boolean;
-  isChecked?: boolean;
-  onCheckedChange?: () => void;
-}) => (
-  <Card className="overflow-hidden">
-    <CardHeader>
-      <CardTitle>{title}</CardTitle>
-      <CardDescription>{description}</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className={`w-full overflow-hidden rounded-lg border ${isSquare ? 'aspect-square' : 'aspect-video'}`}>
-        <div className="relative group h-full w-full">
-            <Image
-              src={imageUrl}
-              alt={description}
-              width={width}
-              height={height}
-              className="h-full w-full object-cover transition-transform hover:scale-105"
-              data-ai-hint={imageHint}
-            />
-             {showCheckbox && (
-                <div className="absolute top-2 right-2">
-                    <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={onCheckedChange}
-                        className="h-6 w-6 border-white bg-black/20 data-[state=checked]:bg-primary"
-                    />
-                </div>
-            )}
-        </div>
+
+const DetailItem = ({ label, value }: { label: string; value?: string | null }) => {
+    if (!value) return null;
+    return (
+      <div>
+        <h4 className="font-semibold text-sm text-foreground/80">{label}</h4>
+        <p className="text-sm text-foreground">{value}</p>
       </div>
-    </CardContent>
-    <CardFooter className="gap-2">{children}</CardFooter>
-  </Card>
-);
+    );
+};
 
 export function StoryboardTabs({
   scene,
@@ -138,13 +92,43 @@ export function StoryboardTabs({
   };
 
   const currentTab = React.useRef('sketches');
-  const isSketchTabActive = currentTab.current === 'sketches';
+
+  const { details } = scene;
 
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="text-2xl font-bold font-headline">Scene {scene.id}</h2>
-        <p className="text-muted-foreground">{scene.description}</p>
+      <div className="mb-6 bg-card border rounded-lg p-4">
+        <h2 className="text-2xl font-bold font-headline mb-2">Scene {scene.id}</h2>
+        <p className="text-muted-foreground mb-4">{details.description}</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+            <div className="space-y-2 p-3 bg-background rounded-md">
+                <h3 className="font-semibold text-base">Shot</h3>
+                <DetailItem label="Composition" value={details.shot.composition} />
+                <DetailItem label="Camera Motion" value={details.shot.camera_motion} />
+            </div>
+            <div className="space-y-2 p-3 bg-background rounded-md">
+                <h3 className="font-semibold text-base">Subject</h3>
+                <DetailItem label="Description" value={details.subject.description} />
+                <DetailItem label="Wardrobe" value={details.subject.wardrobe} />
+            </div>
+            <div className="space-y-2 p-3 bg-background rounded-md">
+                <h3 className="font-semibold text-base">Scene</h3>
+                <DetailItem label="Location" value={details.scene.location} />
+                <DetailItem label="Time of Day" value={details.scene.time_of_day} />
+                <DetailItem label="Environment" value={details.scene.environment} />
+            </div>
+             <div className="space-y-2 p-3 bg-background rounded-md">
+                <h3 className="font-semibold text-base">Visual Details</h3>
+                <DetailItem label="Action" value={details.visual_details.action} />
+                <DetailItem label="Props" value={details.visual_details.props} />
+            </div>
+            <div className="space-y-2 p-3 bg-background rounded-md">
+                <h3 className="font-semibold text-base">Cinematography</h3>
+                <DetailItem label="Lighting" value={details.cinematography.lighting} />
+                <DetailItem label="Tone" value={details.cinematography.tone} />
+            </div>
+        </div>
       </div>
       <Tabs defaultValue="sketches" onValueChange={(value) => currentTab.current = value}>
         <div className="flex items-center justify-between">
@@ -154,13 +138,13 @@ export function StoryboardTabs({
                 <TabsTrigger value="animations">Animations</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                 {sketch && sketch.imageUrls.length > 0 && (
+                 {currentTab.current === 'sketches' && sketch && sketch.imageUrls.length > 0 && (
                     <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
                         <Download className="mr-2 h-4 w-4" />
                         Download Selected
                     </Button>
                 )}
-                {detailedImages.length > 0 && (
+                {currentTab.current === 'detailed' && detailedImages.length > 0 && (
                     <Button onClick={onAnimate} disabled={selectedForAnimation.length !== 2}>
                         <Film className="mr-2 h-4 w-4" />
                         Generate Animation
@@ -289,21 +273,31 @@ export function StoryboardTabs({
            {animations.length > 0 ? (
              <div className="grid gap-4 md:grid-cols-2">
                 {animations.map((anim) => (
-                    <ImageCard
-                        key={anim.id}
-                        imageUrl={anim.imageUrl}
-                        title="Generated Animation"
-                        description="Animated transition between two keyframes."
-                        imageHint="animation sequence"
-                    >
-                         <Button
-                            variant="outline"
-                            onClick={() => handleDownload(anim.imageUrl, `scene-${scene.id}-animation-${anim.id}.gif`)}
-                        >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
-                        </Button>
-                    </ImageCard>
+                    <Card key={anim.id}>
+                        <CardHeader>
+                            <CardTitle>Generated Animation</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Image
+                                src={anim.imageUrl}
+                                alt="Generated Animation"
+                                width={1024}
+                                height={576}
+                                className="aspect-video w-full rounded-md object-cover"
+                                data-ai-hint="animation sequence"
+                            />
+                        </CardContent>
+                         <CardFooter>
+                             <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => handleDownload(anim.imageUrl, `scene-${scene.id}-animation-${anim.id}.gif`)}
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                            </Button>
+                         </CardFooter>
+                    </Card>
                 ))}
              </div>
            ) : (

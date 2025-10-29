@@ -51,7 +51,7 @@ export function ScenesSidebar({
                 <div className="flex flex-col items-start text-left">
                   <span className="font-semibold">Scene {scene.id}</span>
                   <span className="text-xs text-muted-foreground line-clamp-2">
-                    {scene.description}
+                    {scene.details.description}
                   </span>
                 </div>
               </SidebarMenuButton>
