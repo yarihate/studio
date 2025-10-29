@@ -107,11 +107,15 @@ export function StoryboardTabs({
                 <DetailItem label="Composition" value={details.shot.composition} />
                 <DetailItem label="Camera Motion" value={details.shot.camera_motion} />
             </div>
-            <div className="space-y-2 p-3 bg-background rounded-md">
-                <h3 className="font-semibold text-base">Subject</h3>
-                <DetailItem label="Description" value={details.subject.description} />
-                <DetailItem label="Wardrobe" value={details.subject.wardrobe} />
-            </div>
+
+            {details.subjects?.map((subject, index) => (
+              <div key={index} className="space-y-2 p-3 bg-background rounded-md">
+                  <h3 className="font-semibold text-base">Subject {details.subjects && details.subjects.length > 1 ? index + 1 : ''}</h3>
+                  <DetailItem label="Description" value={subject.description} />
+                  <DetailItem label="Wardrobe" value={subject.wardrobe} />
+              </div>
+            ))}
+
             <div className="space-y-2 p-3 bg-background rounded-md">
                 <h3 className="font-semibold text-base">Scene</h3>
                 <DetailItem label="Location" value={details.scene.location} />

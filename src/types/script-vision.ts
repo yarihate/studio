@@ -1,15 +1,17 @@
 import { z } from 'zod';
 
+export const SubjectSchema = z.object({
+  description: z.string().optional().nullable(),
+  wardrobe: z.string().optional().nullable(),
+});
+
 export const SceneDetailsSchema = z.object({
   description: z.string().optional().nullable(),
   shot: z.object({
     composition: z.string().optional().nullable(),
     camera_motion: z.string().optional().nullable(),
   }),
-  subject: z.object({
-    description: z.string().optional().nullable(),
-    wardrobe: z.string().optional().nullable(),
-  }),
+  subjects: z.array(SubjectSchema).optional().nullable(),
   scene: z.object({
     location: z.string().optional().nullable(),
     time_of_day: z.string().optional().nullable(),
