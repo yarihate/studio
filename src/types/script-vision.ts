@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const SceneDetailsSchema = z.object({
-  description: z.string(),
+  description: z.string().optional().nullable(),
   shot: z.object({
     composition: z.string().optional().nullable(),
     camera_motion: z.string().optional().nullable(),
