@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const SubjectSchema = z.object({
+  name: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   wardrobe: z.string().optional().nullable(),
 });

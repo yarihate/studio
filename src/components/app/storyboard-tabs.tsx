@@ -91,7 +91,7 @@ export function StoryboardTabs({
     document.body.removeChild(link);
   };
 
-  const currentTab = React.useRef('sketches');
+  const [activeTab, setActiveTab] = React.useState('sketches');
 
   const { details } = scene;
 
@@ -110,7 +110,7 @@ export function StoryboardTabs({
 
             {details.subjects?.map((subject, index) => (
               <div key={index} className="space-y-2 p-3 bg-background rounded-md">
-                  <h3 className="font-semibold text-base">Subject {details.subjects && details.subjects.length > 1 ? index + 1 : ''}</h3>
+                  <h3 className="font-semibold text-base">{subject.name || `Subject ${index + 1}`}</h3>
                   <DetailItem label="Description" value={subject.description} />
                   <DetailItem label="Wardrobe" value={subject.wardrobe} />
               </div>
@@ -134,7 +134,7 @@ export function StoryboardTabs({
             </div>
         </div>
       </div>
-      <Tabs defaultValue="sketches" onValueChange={(value) => currentTab.current = value}>
+      <Tabs defaultValue="sketches" onValueChange={setActiveTab}>
         <div className="flex items-center justify-between">
             <TabsList>
                 <TabsTrigger value="sketches">Sketches</TabsTrigger>
@@ -142,13 +142,13 @@ export function StoryboardTabs({
                 <TabsTrigger value="animations">Animations</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                 {currentTab.current === 'sketches' && sketch && sketch.imageUrls.length > 0 && (
+                 {activeTab === 'sketches' && sketch && sketch.imageUrls.length > 0 && (
                     <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
                         <Download className="mr-2 h-4 w-4" />
                         Download Selected
                     </Button>
                 )}
-                {currentTab.current === 'detailed' && detailedImages.length > 0 && (
+                {activeTab === 'detailed' && detailedImages.length > 0 && (
                     <Button onClick={onAnimate} disabled={selectedForAnimation.length !== 2}>
                         <Film className="mr-2 h-4 w-4" />
                         Generate Animation

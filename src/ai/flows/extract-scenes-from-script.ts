@@ -44,6 +44,7 @@ const extractScenesPrompt = ai.definePrompt({
   },
   "subjects": [
     {
+      "name": "The name of the subject (e.g., 'Sarah', 'The Creature').",
       "description": "Detailed description of a main subject (character, animal, or object), including appearance, age, ethnicity, and unique features.",
       "wardrobe": "Describe the subject's clothing. Use 'N/A' if not applicable."
     }
@@ -66,7 +67,7 @@ const extractScenesPrompt = ai.definePrompt({
 **Content Generation Guidelines:**
 
 *   **Scene Separation**: Identify each distinct scene in the script. A scene is defined by a change in location or a significant jump in time.
-*   **Subjects Array**: The "subjects" field must be an array, even if there is only one subject. Identify every distinct subject in the scene and create a separate object for each within the "subjects" array.
+*   **Subjects Array**: The "subjects" field must be an array, even if there is only one subject. Identify every distinct subject in the scene and create a separate object for each within the "subjects" array. Ensure the "name" field is populated with the subject's name as identified in the script.
 *   **Granularity of Detail**: Fill in each field with as much specific detail as can be inferred from the script. If a detail is not present, use a sensible default or state that it's not specified.
 *   **Consistency**: Ensure every scene object in the output array follows the specified JSON structure.
 *   **Language**: Use clear, concise, professional filmmaking terminology.
