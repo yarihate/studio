@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import React from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,17 +22,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Clapperboard } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Clapperboard, FileUp, FileCheck } from 'lucide-react';
 
 const FormSchema = z.object({
-  script: z.string().min(10, {
-    message: 'Script must be at least 10 characters.',
-  }),
+  file: z.instanceof(File).refine(file => file.size > 0, 'Please upload a file.'),
 });
 
 type ScriptFormProps = {
-  onSubmit: (script: string) => void;
+  onSubmit: (file: File) => void;
   isLoading: boolean;
 };
 
@@ -39,12 +38,23 @@ export function ScriptForm({ onSubmit, isLoading }: ScriptFormProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      script: '',
+      file: undefined,
     },
   });
 
+  const fileRef = form.register('file');
+  const [fileName, setFileName] = React.useState<string | null>(null);
+
+  const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      form.setValue('file', file);
+    }
+  };
+
   function onFormSubmit(data: z.infer<typeof FormSchema>) {
-    onSubmit(data.script);
+    onSubmit(data.file);
   }
 
   return (
@@ -52,11 +62,11 @@ export function ScriptForm({ onSubmit, isLoading }: ScriptFormProps) {
       <Card className="w-full max-w-2xl shadow-2xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <Clapperboard className="h-8 w-8 text-primary" />
+            <Clapperboard className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="font-headline text-3xl">ScriptVision AI</CardTitle>
           <CardDescription>
-            Paste your script below to automatically generate storyboard sketches.
+            Upload your script file (.doc, .docx, .pdf) to automatically generate storyboard sketches.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -64,16 +74,34 @@ export function ScriptForm({ onSubmit, isLoading }: ScriptFormProps) {
             <CardContent>
               <FormField
                 control={form.control}
-                name="script"
+                name="file"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="sr-only">Script</FormLabel>
+                    <FormLabel className="sr-only">Script File</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="INT. COFFEE SHOP - DAY..."
-                        className="min-h-[250px] resize-y"
-                        {...field}
-                      />
+                      <div className="relative flex w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-background p-12 text-center transition-colors hover:border-primary">
+                        <Input
+                          type="file"
+                          accept=".doc,.docx,.pdf,.txt"
+                          className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                          {...fileRef}
+                          onChange={onFileChange}
+                        />
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                          {fileName ? (
+                            <>
+                              <FileCheck className="h-10 w-10 text-green-500" />
+                              <span className="font-semibold text-foreground">{fileName}</span>
+                            </>
+                          ) : (
+                            <>
+                              <FileUp className="h-10 w-10" />
+                              <span className="font-semibold text-foreground">Click to upload or drag & drop</span>
+                              <span>DOC, DOCX, or PDF</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

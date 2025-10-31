@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { handleExtractScenes, handleGenerateSketchesForScene } from '@/app/actions';
+import { handleExtractScenesFromFile } from '@/app/actions';
 import { AppHeader } from '@/components/app/header';
 import { ScenesSidebar } from '@/components/app/scenes-sidebar';
 import { ScriptForm } from '@/components/app/script-form';
@@ -26,14 +26,17 @@ export default function HomePage() {
 
   const { toast } = useToast();
 
-  const handleScriptSubmit = async (script: string) => {
+  const handleScriptSubmit = async (file: File) => {
     setIsExtractingScenes(true);
     setSketches([]);
     setDetailedImages([]);
     setAnimations([]);
     setSelectedSketchUrls([]);
 
-    const sceneResult = await handleExtractScenes(script);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const sceneResult = await handleExtractScenesFromFile(formData);
 
     if (sceneResult.error || !sceneResult.scenes) {
       toast({
@@ -57,21 +60,21 @@ export default function HomePage() {
 
   const handleGenerateSketchForScene = async (scene: Scene) => {
     setIsGeneratingSketches(prev => [...prev, scene.id]);
-    setSelectedSketchUrls([]); // Clear selection when regenerating
-    const sketchResult = await handleGenerateSketchesForScene(scene.details.description);
-    if (sketchResult.error || !sketchResult.sketchDataUris) {
-      toast({
-        variant: 'destructive',
-        title: `Error generating sketch for Scene ${scene.id}`,
-        description: sketchResult.error,
-      });
-    } else {
-        const newSketch = { sceneId: scene.id, imageUrls: sketchResult.sketchDataUris };
-        setSketches(prev => {
-          const otherSketches = prev.filter(s => s.sceneId !== scene.id);
-          return [...otherSketches, newSketch];
-        });
-    }
+    setSelectedSketchUrls([]);
+    
+    // Using mock data for sketch generation
+    const mockImageUrls = [
+        `https://picsum.photos/seed/${scene.id * 10}/480/480`,
+        `https://picsum.photos/seed/${scene.id * 10 + 1}/480/480`,
+        `https://picsum.photos/seed/${scene.id * 10 + 2}/480/480`,
+    ];
+
+    const newSketch = { sceneId: scene.id, imageUrls: mockImageUrls };
+    setSketches(prev => {
+        const otherSketches = prev.filter(s => s.sceneId !== scene.id);
+        return [...otherSketches, newSketch];
+    });
+
     setIsGeneratingSketches(prev => prev.filter(id => id !== scene.id));
   };
 

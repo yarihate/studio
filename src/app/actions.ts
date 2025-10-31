@@ -1,14 +1,42 @@
 'use server';
 
+import { extractTextFromDocx } from '@/ai/flows/extract-text-from-docx';
+import { extractTextFromPdf } from '@/ai/flows/extract-text-from-pdf';
 import { extractScenesFromScript } from '@/ai/flows/extract-scenes-from-script';
-import { extractShotsFromScene } from '@/ai/flows/extract-shots-from-scene';
-import { generateStoryboardSketches } from '@/ai/flows/generate-storyboard-sketches';
 import { toast } from '@/hooks/use-toast';
 
-export async function handleExtractScenes(scriptContent: string) {
+async function getScriptContent(file: File): Promise<string> {
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+    if (file.type === 'application/pdf') {
+        const result = await extractTextFromPdf({ pdfBuffer: fileBuffer });
+        return result.text;
+    }
+
+    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const result = await extractTextFromDocx({ docxBuffer: fileBuffer });
+        return result.text;
+    }
+    
+    if (file.type === 'text/plain' || file.name.endsWith('.doc')) {
+        return fileBuffer.toString('utf-8');
+    }
+
+    throw new Error('Unsupported file type.');
+}
+
+
+export async function handleExtractScenesFromFile(formData: FormData) {
   try {
+    const file = formData.get('file') as File;
+    if (!file) {
+      throw new Error('No file provided.');
+    }
+
+    const scriptContent = await getScriptContent(file);
+
     if (!scriptContent.trim()) {
-      throw new Error('Script content cannot be empty.');
+      throw new Error('Script content could not be extracted or is empty.');
     }
     const result = await extractScenesFromScript({ scriptContent });
     return { scenes: result.scenes };
@@ -17,36 +45,4 @@ export async function handleExtractScenes(scriptContent: string) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { error: `Failed to extract scenes from the script: ${errorMessage}` };
   }
-}
-
-export async function handleGenerateSketchesForScene(sceneDescription: string) {
-    try {
-      if (!sceneDescription.trim()) {
-        throw new Error('Scene description cannot be empty.');
-      }
-      
-      const shotsResult = await extractShotsFromScene({ sceneDescription });
-      
-      if (shotsResult.error || !shotsResult.shots) {
-         throw new Error(shotsResult.error || 'Failed to extract shots from the scene.');
-      }
-
-      if (shotsResult.shots.length === 0) {
-        // If no shots are extracted, use the whole scene description for one sketch.
-        shotsResult.shots = [sceneDescription];
-      }
-      
-      const sketchResult = await generateStoryboardSketches({ shotDescriptions: shotsResult.shots });
-
-      if (sketchResult.error || !sketchResult.sketchDataUris) {
-        throw new Error(sketchResult.error || 'Failed to generate sketches.');
-      }
-
-      return { sketchDataUris: sketchResult.sketchDataUris };
-
-    } catch (error) {
-      console.error('Error in handleGenerateSketchesForScene:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      return { error: `Failed to generate sketches for the scene: ${errorMessage}` };
-    }
 }
