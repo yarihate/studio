@@ -1,12 +1,5 @@
-import {genkit, Plugin} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
-
-const google = googleAI({
-  // This is required for text-to-image models like Imagen.
-  apiVersion: 'v1beta',
-});
+import {genkit} from 'genkit';
 
 export const ai = genkit({
-  plugins: [google],
-  model: 'googleai/gemini-2.5-flash',
+  plugins: [],
 });
