@@ -4,6 +4,11 @@ This is a NextJS starter in Firebase Studio.
 
 To get started, take a look at src/app/page.tsx.
 
+## Key Concepts
+
+*   **Genkit AI:** This is the framework used to create and manage the AI-powered features. It helps define "flows" (like extracting scenes from a script) that communicate with the AI model in a structured way. Think of it as the backend logic for your AI tasks.
+*   **GEMINI\_API\_KEY:** This is your personal access key to use Google's Gemini AI models. It authenticates your application's requests, proving you have permission to use the AI. Genkit uses this key to make calls to the Gemini model.
+
 ## Running Locally
 
 To run this project on your local machine, follow these steps.
@@ -53,6 +58,11 @@ This project requires two separate development servers to be running simultaneou
     This will start the Genkit development server, which your Next.js app will use to communicate with the AI models.
 
 ---
+
+## Ключевые концепции
+
+*   **Genkit AI:** Это фреймворк, который используется для создания и управления функциями на базе искусственного интеллекта. Он помогает определять "потоки" (например, извлечение сцен из сценария), которые структурированно общаются с AI-моделью. Считайте это бэкенд-логикой для ваших AI-задач.
+*   **GEMINI\_API\_KEY:** Это ваш личный ключ доступа для использования AI-моделей Gemini от Google. Он аутентифицирует запросы вашего приложения, подтверждая, что у вас есть разрешение на использование AI. Genkit использует этот ключ для вызовов к модели Gemini.
 
 ## Запуск проекта на локальной машине
 
