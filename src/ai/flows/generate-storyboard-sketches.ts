@@ -39,6 +39,14 @@ const generateStoryboardSketchesFlow = ai.defineFlow(
     outputSchema: GenerateStoryboardSketchesOutputSchema,
   },
   async input => {
+    // Mocked response for local development
+    const mockSketchDataUris = input.shotDescriptions.map((shot, index) => {
+        return `https://picsum.photos/seed/${new Date().getTime() + index}/480/480`;
+    });
+    return { sketchDataUris: mockSketchDataUris };
+
+    // Original call to Imagen
+    /*
     const sketchPromises = input.shotDescriptions.map(async (shot) => {
         const { media } = await ai.generate({
             model: 'googleai/imagen-4.0-fast-generate-001',
@@ -49,5 +57,6 @@ const generateStoryboardSketchesFlow = ai.defineFlow(
 
     const sketchDataUris = await Promise.all(sketchPromises);
     return { sketchDataUris };
+    */
   }
 );
