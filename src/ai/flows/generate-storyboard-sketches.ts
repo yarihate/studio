@@ -39,17 +39,13 @@ const generateStoryboardSketchesFlow = ai.defineFlow(
     outputSchema: GenerateStoryboardSketchesOutputSchema,
   },
   async input => {
-    // Mocked response for local development
-    const mockSketchDataUris = input.shotDescriptions.map((shot, index) => {
-        return `https://picsum.photos/seed/${new Date().getTime() + index}/480/480`;
-    });
-    return { sketchDataUris: mockSketchDataUris };
+    // This flow is configured to use a local LLM for image generation.
+    // NOTE: Not all local models support image generation. You may need to
+    // install a specific model (e.g., a fine-tuned SDXL model) and configure
+    // Genkit to use it. The prompt below is a generic example.
 
-    // Original call to Imagen
-    /*
     const sketchPromises = input.shotDescriptions.map(async (shot) => {
         const { media } = await ai.generate({
-            model: 'googleai/imagen-4.0-fast-generate-001',
             prompt: `Create a storyboard sketch for the following scene description. The sketch should be in a cinematic, black and white, pencil sketch style.\n\nScene Description: ${shot}`,
         });
         return media.url;
@@ -57,6 +53,5 @@ const generateStoryboardSketchesFlow = ai.defineFlow(
 
     const sketchDataUris = await Promise.all(sketchPromises);
     return { sketchDataUris };
-    */
   }
 );

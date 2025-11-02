@@ -84,47 +84,7 @@ const extractScenesFromScriptFlow = ai.defineFlow(
     outputSchema: ExtractScenesFromScriptOutputSchema,
   },
   async (input) => {
-    // Mocked response for local development
-    const mockScenes = {
-      scenes: [
-        {
-          description: 'A tense standoff in a neon-lit alleyway at night.',
-          shot: {
-            composition: 'Medium close-up, 50mm lens, ARRI Alexa, shallow depth of field.',
-            camera_motion: 'Slow handheld shake to build tension.',
-          },
-          subjects: [
-            {
-              name: 'Kael',
-              description: 'A 30-year-old detective, weary and resolute, with a scar above his right eye.',
-              wardrobe: 'A rain-soaked trench coat over a simple shirt and tie.',
-            },
-            {
-              name: 'Lira',
-              description: 'A 25-year-old informant, nervous but defiant, clutching a data chip.',
-              wardrobe: 'A futuristic, reflective jacket and dark cargo pants.',
-            },
-          ],
-          scene: {
-            location: 'A narrow alley between towering skyscrapers in Neo-Kyoto.',
-            time_of_day: 'Night',
-            environment: 'Rain-slicked pavement reflecting holographic advertisements. Steam rises from sewer grates.',
-          },
-          visual_details: {
-            action: 'Kael confronts Lira, who is cornered against a wall.',
-            props: "A discarded newspaper, overflowing dumpster, a flickering neon sign for 'The Serpent's Kiss' bar.",
-          },
-          cinematography: {
-            lighting: 'Harsh, colored light from neon signs creates dramatic highlights and deep shadows. A single backlight rims the subjects.',
-            tone: 'Tense, suspenseful, noir.',
-          },
-        },
-      ],
-    };
-    return mockScenes;
-
-    // Original call to Gemini
-    // const {output} = await extractScenesPrompt(input);
-    // return output!;
+    const {output} = await extractScenesPrompt(input);
+    return output!;
   }
 );
