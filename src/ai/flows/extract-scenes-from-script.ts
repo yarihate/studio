@@ -1,43 +1,27 @@
 'use server';
 
 /**
- * @fileOverview Extracts scenes from a script using AI.
+ * @fileOverview Extracts scenes from a script using a direct call to Ollama.
  *
  * - extractScenesFromScript - A function that extracts scenes from a script.
  * - ExtractScenesFromScriptInput - The input type for the extractScenesFromScript function.
  * - ExtractScenesFromScriptOutput - The return type for the extractScenesFromScript function.
  */
 
-import {ai, localLlm} from '@/ai/genkit';
-import {z} from 'genkit';
-import { SceneDetailsSchema } from '@/types/script-vision';
+import type { SceneDetails } from '@/types/script-vision';
 
-const ExtractScenesFromScriptInputSchema = z.object({
-  scriptContent: z.string().describe('The content of the script to extract scenes from.'),
-});
-export type ExtractScenesFromScriptInput = z.infer<typeof ExtractScenesFromScriptInputSchema>;
-
-
-const ExtractScenesFromScriptOutputSchema = z.object({
-    scenes: z.array(SceneDetailsSchema).describe('The extracted scenes from the script.'),
-});
-
-export type ExtractScenesFromScriptOutput = z.infer<typeof ExtractScenesFromScriptOutputSchema>;
-
-export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<ExtractScenesFromScriptOutput> {
-  return extractScenesFromScriptFlow(input);
+export interface ExtractScenesFromScriptInput {
+  scriptContent: string;
 }
 
-const extractScenesPrompt = ai.definePrompt({
-  name: 'extractScenesPrompt',
-  model: localLlm,
-  input: {schema: ExtractScenesFromScriptInputSchema},
-  output: {schema: ExtractScenesFromScriptOutputSchema},
-  config: {
-    response_format: { type: 'json_object' },
-    stream: false,
-  },
-  prompt: `You are an experienced film concept designer. Your task is to analyze the provided script and break it down into distinct scenes. For each scene, you must extract detailed information and format it into a JSON object. Please strictly adhere to the following JSON structure and content specifications.
+export interface ExtractScenesFromScriptOutput {
+    scenes: SceneDetails[];
+}
+
+const OLLAMA_URL = 'http://localhost:11434/api/generate';
+const OLLAMA_MODEL = 'gemma3:27b';
+
+const PROMPT_TEMPLATE = `You are an experienced film concept designer. Your task is to analyze the provided script and break it down into distinct scenes. For each scene, you must extract detailed information and format it into a JSON object. Please strictly adhere to the following JSON structure and content specifications.
 
 --------------------------------------------------------------------------------
 **JSON Structure Template For Each Scene:**
@@ -76,20 +60,49 @@ const extractScenesPrompt = ai.definePrompt({
 *   **Granularity of Detail**: Fill in each field with as much specific detail as can be inferred from the script. If a detail is not present, use a sensible default or state that it's not specified.
 *   **Consistency**: Ensure every scene object in the output array follows the specified JSON structure.
 *   **Language**: Use clear, concise, professional filmmaking terminology.
+*   **IMPORTANT**: Your output must be ONLY the JSON object containing the array of scenes, with no additional text or explanations before or after it.
 
 Here is the script content to analyze:
   {{scriptContent}}
-  `,
-});
+  `;
 
-const extractScenesFromScriptFlow = ai.defineFlow(
-  {
-    name: 'extractScenesFromScriptFlow',
-    inputSchema: ExtractScenesFromScriptInputSchema,
-    outputSchema: ExtractScenesFromScriptOutputSchema,
-  },
-  async (input) => {
-    const {output} = await extractScenesPrompt(input);
-    return output!;
-  }
-);
+export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<ExtractScenesFromScriptOutput> {
+    const prompt = PROMPT_TEMPLATE.replace('{{scriptContent}}', input.scriptContent);
+
+    try {
+        console.log(`Sending request to Ollama at ${OLLAMA_URL} with model ${OLLAMA_MODEL}`);
+
+        const response = await fetch(OLLAMA_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: OLLAMA_MODEL,
+                prompt: prompt,
+                format: 'json',
+                stream: false, // We ask for a single response, not a stream
+            }),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error('Ollama request failed:', errorBody);
+            throw new Error(`Ollama API request failed with status ${response.status}: ${errorBody}`);
+        }
+
+        const responseData = await response.json();
+        
+        console.log('Received response from Ollama.');
+
+        // The actual JSON content is in the `response` property of the returned object
+        const jsonContent = JSON.parse(responseData.response);
+
+        // The top-level object from the model should match our output schema
+        return jsonContent as ExtractScenesFromScriptOutput;
+
+    } catch (error) {
+        console.error('Error calling Ollama API:', error);
+        throw error;
+    }
+}
