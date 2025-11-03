@@ -20,10 +20,11 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, Sparkles, Film, Plus, Wand, Loader2 } from 'lucide-react';
+import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote } from 'lucide-react';
 import type {
   Scene,
   Sketch,
@@ -37,7 +38,7 @@ type StoryboardTabsProps = {
   sketch: Sketch | undefined;
   detailedImages: DetailedImageType[];
   animations: Animation[];
-  onEnhance: (sceneId: number) => void;
+  onEnhance: (sceneId: string) => void;
   onSelectForAnimation: (imageId: number) => void;
   selectedForAnimation: number[];
   onAnimate: () => void;
@@ -49,12 +50,23 @@ type StoryboardTabsProps = {
 };
 
 
-const DetailItem = ({ label, value }: { label: string; value?: string | null }) => {
-    if (!value) return null;
+const DetailItem = ({ label, value, icon: Icon }: { label: string; value?: string | string[] | null; icon?: React.ElementType }) => {
+    if (!value || (Array.isArray(value) && value.length === 0)) return null;
     return (
-      <div>
-        <h4 className="font-semibold text-sm text-foreground/80">{label}</h4>
-        <p className="text-sm text-foreground">{value}</p>
+      <div className="flex items-start gap-2">
+        {Icon && <Icon className="h-4 w-4 mt-0.5 text-muted-foreground" />}
+        <div>
+          <h4 className="font-semibold text-sm text-foreground/80">{label}</h4>
+          {Array.isArray(value) ? (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {value.map((item, index) => (
+                <Badge key={index} variant="secondary">{item}</Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-foreground">{value}</p>
+          )}
+        </div>
       </div>
     );
 };
@@ -77,7 +89,7 @@ export function StoryboardTabs({
   if (!scene) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">Select a scene to view its storyboard.</p>
+        <p className="text-muted-foreground">Выберите сцену для просмотра.</p>
       </div>
     );
   }
@@ -93,65 +105,53 @@ export function StoryboardTabs({
 
   const [activeTab, setActiveTab] = React.useState('sketches');
 
-  const { details } = scene;
-
   return (
     <div>
-      <div className="mb-6 bg-card border rounded-lg p-4">
-        <h2 className="text-2xl font-bold font-headline mb-2">Scene {scene.id}</h2>
-        <p className="text-muted-foreground mb-4">{details.description}</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-            <div className="space-y-2 p-3 bg-background rounded-md">
-                <h3 className="font-semibold text-base">Shot</h3>
-                <DetailItem label="Composition" value={details.shot.composition} />
-                <DetailItem label="Camera Motion" value={details.shot.camera_motion} />
-            </div>
-
-            {details.subjects?.map((subject, index) => (
-              <div key={index} className="space-y-2 p-3 bg-background rounded-md">
-                  <h3 className="font-semibold text-base">{subject.name || `Subject ${index + 1}`}</h3>
-                  <DetailItem label="Description" value={subject.description} />
-                  <DetailItem label="Wardrobe" value={subject.wardrobe} />
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="font-headline text-2xl">Сцена {scene.scene_id}: {scene.scene_title}</CardTitle>
+          <CardDescription>{scene.general_context}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <DetailItem label="Персонажи" value={scene.characters} icon={User} />
+            <DetailItem label="Время" value={scene.time_period} icon={Clock} />
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold font-headline">Под-сцены</h3>
+            {scene.subscenes.map((sub, index) => (
+              <div key={sub.subscene_id} className="p-4 bg-background rounded-lg border">
+                <h4 className="font-bold mb-2">Под-сцена {sub.subscene_id}</h4>
+                <p className="mb-3 text-sm text-foreground">{sub.description}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <DetailItem label="Эмоция" value={sub.emotion} icon={Drama} />
+                  <DetailItem label="Камера" value={sub.camera_hint} icon={Camera} />
+                  <DetailItem label="Реквизит" value={sub.props} />
+                  {sub.dialogue_excerpt && <DetailItem label="Диалог" value={`"${sub.dialogue_excerpt}"`} icon={Quote} />}
+                </div>
               </div>
             ))}
-
-            <div className="space-y-2 p-3 bg-background rounded-md">
-                <h3 className="font-semibold text-base">Scene</h3>
-                <DetailItem label="Location" value={details.scene.location} />
-                <DetailItem label="Time of Day" value={details.scene.time_of_day} />
-                <DetailItem label="Environment" value={details.scene.environment} />
-            </div>
-             <div className="space-y-2 p-3 bg-background rounded-md">
-                <h3 className="font-semibold text-base">Visual Details</h3>
-                <DetailItem label="Action" value={details.visual_details.action} />
-                <DetailItem label="Props" value={details.visual_details.props} />
-            </div>
-            <div className="space-y-2 p-3 bg-background rounded-md">
-                <h3 className="font-semibold text-base">Cinematography</h3>
-                <DetailItem label="Lighting" value={details.cinematography.lighting} />
-                <DetailItem label="Tone" value={details.cinematography.tone} />
-            </div>
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
       <Tabs defaultValue="sketches" onValueChange={setActiveTab}>
         <div className="flex items-center justify-between">
             <TabsList>
-                <TabsTrigger value="sketches">Sketches</TabsTrigger>
-                <TabsTrigger value="detailed">Detailed Images</TabsTrigger>
-                <TabsTrigger value="animations">Animations</TabsTrigger>
+                <TabsTrigger value="sketches">Наброски</TabsTrigger>
+                <TabsTrigger value="detailed">Детальные</TabsTrigger>
+                <TabsTrigger value="animations">Анимации</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
                  {activeTab === 'sketches' && sketch && sketch.imageUrls.length > 0 && (
                     <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
                         <Download className="mr-2 h-4 w-4" />
-                        Download Selected
+                        Скачать выбранные
                     </Button>
                 )}
                 {activeTab === 'detailed' && detailedImages.length > 0 && (
                     <Button onClick={onAnimate} disabled={selectedForAnimation.length !== 2}>
                         <Film className="mr-2 h-4 w-4" />
-                        Generate Animation
+                        Создать анимацию
                     </Button>
                 )}
             </div>
@@ -161,9 +161,9 @@ export function StoryboardTabs({
           {isLoading ? (
              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Generating Sketches...</h3>
+                <h3 className="mt-4 text-lg font-semibold">Генерация набросков...</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    The AI is drawing, please wait a moment.
+                    ИИ рисует, пожалуйста, подождите.
                 </p>
             </div>
           ) : sketch && sketch.imageUrls.length > 0 ? (
@@ -173,11 +173,14 @@ export function StoryboardTabs({
                         <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                             <div className="p-1">
                                 <Card className="overflow-hidden">
+                                    <CardHeader className="p-2 text-center bg-muted">
+                                        <p className="text-xs font-semibold truncate">Под-сцена {scene.subscenes[index]?.subscene_id}</p>
+                                    </CardHeader>
                                     <CardContent className="p-0">
                                         <div className="relative group aspect-square">
                                             <Image
                                                 src={imageUrl}
-                                                alt={`AI Generated Sketch ${index + 1}`}
+                                                alt={`Набросок для под-сцены ${scene.subscenes[index]?.subscene_id}`}
                                                 width={480}
                                                 height={480}
                                                 className="h-full w-full object-cover"
@@ -193,9 +196,9 @@ export function StoryboardTabs({
                                         </div>
                                     </CardContent>
                                     <CardFooter className="p-4">
-                                        <Button onClick={() => onEnhance(scene.id)} className="w-full">
+                                        <Button onClick={() => onEnhance(scene.scene_id)} className="w-full">
                                             <Sparkles className="mr-2 h-4 w-4" />
-                                            Enhance
+                                            Улучшить
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -209,13 +212,13 @@ export function StoryboardTabs({
           ) : (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
                 <Wand className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">No Sketches Generated</h3>
+                <h3 className="mt-4 text-lg font-semibold">Наброски еще не созданы</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    Click the button below to generate AI sketches for this scene.
+                    Нажмите кнопку, чтобы создать AI-наброски для этой сцены.
                 </p>
                 <Button className="mt-4" onClick={onGenerateSketch}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Generate Sketches
+                    Создать наброски
                 </Button>
             </div>
           )}
@@ -230,7 +233,7 @@ export function StoryboardTabs({
                          <div className="relative group">
                             <Image
                                 src={image.imageUrl}
-                                alt={`Detailed image for scene ${scene.id}`}
+                                alt={`Детальное изображение для сцены ${scene.scene_id}`}
                                 width={800}
                                 height={800}
                                 className="aspect-square h-full w-full object-cover"
@@ -249,10 +252,10 @@ export function StoryboardTabs({
                         <Button
                             variant="outline"
                             className="w-full"
-                            onClick={() => handleDownload(image.imageUrl, `scene-${scene.id}-detailed-${image.id}.png`)}
+                            onClick={() => handleDownload(image.imageUrl, `scene-${scene.scene_id}-detailed-${image.id}.png`)}
                         >
                             <Download className="mr-2 h-4 w-4" />
-                            Download
+                            Скачать
                         </Button>
                     </CardFooter>
                 </Card>
@@ -261,13 +264,13 @@ export function StoryboardTabs({
           ) : (
              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
                 <Sparkles className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">No Detailed Images Yet</h3>
+                <h3 className="mt-4 text-lg font-semibold">Детальных изображений нет</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    Enhance a sketch to generate ultra-realistic images.
+                    Улучшите набросок, чтобы сгенерировать ультра-реалистичное изображение.
                 </p>
-                <Button className="mt-4" onClick={() => onEnhance(scene.id)} disabled={!sketch}>
+                <Button className="mt-4" onClick={() => onEnhance(scene.scene_id)} disabled={!sketch}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Enhance Sketch
+                    Улучшить набросок
                 </Button>
             </div>
           )}
@@ -279,7 +282,7 @@ export function StoryboardTabs({
                 {animations.map((anim) => (
                     <Card key={anim.id}>
                         <CardHeader>
-                            <CardTitle>Generated Animation</CardTitle>
+                            <CardTitle>Сгенерированная анимация</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <Image
@@ -295,10 +298,10 @@ export function StoryboardTabs({
                              <Button
                                 variant="outline"
                                 className="w-full"
-                                onClick={() => handleDownload(anim.imageUrl, `scene-${scene.id}-animation-${anim.id}.gif`)}
+                                onClick={() => handleDownload(anim.imageUrl, `scene-${scene.scene_id}-animation-${anim.id}.gif`)}
                             >
                                 <Download className="mr-2 h-4 w-4" />
-                                Download
+                                Скачать
                             </Button>
                          </CardFooter>
                     </Card>
@@ -307,9 +310,9 @@ export function StoryboardTabs({
            ) : (
              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
                 <Film className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">No Animations Yet</h3>
+                <h3 className="mt-4 text-lg font-semibold">Анимаций пока нет</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    Select two detailed images to generate an animated transition.
+                    Выберите два детальных изображения для создания анимированного перехода.
                 </p>
             </div>
            )}

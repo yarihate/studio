@@ -14,8 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 
 type ScenesSidebarProps = {
   scenes: Scene[];
-  selectedSceneId: number | null;
-  onSelectScene: (id: number) => void;
+  selectedSceneId: string | null;
+  onSelectScene: (id: string) => void;
 };
 
 export function ScenesSidebar({
@@ -36,22 +36,22 @@ export function ScenesSidebar({
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <Film className="h-6 w-6 text-primary" />
-          <h2 className="text-lg font-semibold font-headline">Scenes</h2>
+          <h2 className="text-lg font-semibold font-headline">Сцены</h2>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
           {scenes.map((scene) => (
-            <SidebarMenuItem key={scene.id}>
+            <SidebarMenuItem key={scene.scene_id}>
               <SidebarMenuButton
-                onClick={() => onSelectScene(scene.id)}
-                isActive={selectedSceneId === scene.id}
+                onClick={() => onSelectScene(scene.scene_id)}
+                isActive={selectedSceneId === scene.scene_id}
                 className="h-auto py-2"
               >
                 <div className="flex flex-col items-start text-left">
-                  <span className="font-semibold">Scene {scene.id}</span>
+                  <span className="font-semibold">Сцена {scene.scene_id}</span>
                   <span className="text-xs text-muted-foreground line-clamp-2">
-                    {scene.details.description}
+                    {scene.scene_title}
                   </span>
                 </div>
               </SidebarMenuButton>

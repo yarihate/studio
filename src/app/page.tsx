@@ -13,12 +13,12 @@ import type { Animation, DetailedImage, Scene, Sketch } from '@/types/script-vis
 
 export default function HomePage() {
   const [isExtractingScenes, setIsExtractingScenes] = useState(false);
-  const [isGeneratingSketches, setIsGeneratingSketches] = useState<number[]>([]);
+  const [isGeneratingSketches, setIsGeneratingSketches] = useState<string[]>([]);
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [sketches, setSketches] = useState<Sketch[]>([]);
   const [detailedImages, setDetailedImages] = useState<DetailedImage[]>([]);
   const [animations, setAnimations] = useState<Animation[]>([]);
-  const [selectedSceneId, setSelectedSceneId] = useState<number | null>(null);
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [selectedDetailedImageIds, setSelectedDetailedImageIds] = useState<
     number[]
   >([]);
@@ -49,37 +49,31 @@ export default function HomePage() {
       return;
     }
 
-    const newScenes = sceneResult.scenes.map((details, index) => ({
-      id: index + 1,
-      details: details,
-    }));
-    setScenes(newScenes);
-    setSelectedSceneId(newScenes[0]?.id || null);
+    setScenes(sceneResult.scenes);
+    setSelectedSceneId(sceneResult.scenes[0]?.scene_id || null);
     setIsExtractingScenes(false);
   };
 
   const handleGenerateSketchForScene = async (scene: Scene) => {
-    setIsGeneratingSketches(prev => [...prev, scene.id]);
+    setIsGeneratingSketches(prev => [...prev, scene.scene_id]);
     setSelectedSketchUrls([]);
     
     // Using mock data for sketch generation
-    const mockImageUrls = [
-        `https://picsum.photos/seed/${scene.id * 10}/480/480`,
-        `https://picsum.photos/seed/${scene.id * 10 + 1}/480/480`,
-        `https://picsum.photos/seed/${scene.id * 10 + 2}/480/480`,
-    ];
+    const mockImageUrls = scene.subscenes.map((subscene, index) => 
+        `https://picsum.photos/seed/${subscene.subscene_id}/${index}/480/480`
+    );
 
-    const newSketch = { sceneId: scene.id, imageUrls: mockImageUrls };
+    const newSketch = { sceneId: scene.scene_id, imageUrls: mockImageUrls };
     setSketches(prev => {
-        const otherSketches = prev.filter(s => s.sceneId !== scene.id);
+        const otherSketches = prev.filter(s => s.sceneId !== scene.scene_id);
         return [...otherSketches, newSketch];
     });
 
-    setIsGeneratingSketches(prev => prev.filter(id => id !== scene.id));
+    setIsGeneratingSketches(prev => prev.filter(id => id !== scene.scene_id));
   };
 
 
-  const handleEnhanceSketch = (sceneId: number) => {
+  const handleEnhanceSketch = (sceneId: string) => {
     const placeholder = PlaceHolderImages.find((img) => img.id === 'detailed-view');
     if (!placeholder) {
       toast({
@@ -154,7 +148,7 @@ export default function HomePage() {
   };
 
   const handleGenerateAnimation = () => {
-    if (selectedDetailedImageIds.length !== 2) return;
+    if (selectedDetailedImageIds.length !== 2 || !selectedSceneId) return;
     const placeholder = PlaceHolderImages.find((img) => img.id === 'animation-preview');
      if (!placeholder) {
       toast({
@@ -166,7 +160,7 @@ export default function HomePage() {
     }
     const newAnimation: Animation = {
       id: Date.now(),
-      sceneId: selectedSceneId!,
+      sceneId: selectedSceneId,
       imageUrl: placeholder.imageUrl,
     };
     setAnimations(prev => [...prev, newAnimation]);
@@ -177,7 +171,7 @@ export default function HomePage() {
     });
   };
 
-  const selectedScene = scenes.find((s) => s.id === selectedSceneId);
+  const selectedScene = scenes.find((s) => s.scene_id === selectedSceneId);
   
   if (scenes.length === 0) {
     return <ScriptForm onSubmit={handleScriptSubmit} isLoading={isExtractingScenes} />;
@@ -210,7 +204,7 @@ export default function HomePage() {
             onSelectForAnimation={handleSelectDetailedImage}
             selectedForAnimation={selectedDetailedImageIds}
             onAnimate={handleGenerateAnimation}
-            isLoading={isGeneratingSketches.includes(selectedScene?.id ?? -1)}
+            isLoading={isGeneratingSketches.includes(selectedScene?.scene_id ?? '-1')}
             onGenerateSketch={() => selectedScene && handleGenerateSketchForScene(selectedScene)}
             selectedSketchUrls={selectedSketchUrls}
             onSelectSketch={handleSelectSketch}

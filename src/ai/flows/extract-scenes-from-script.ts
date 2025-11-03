@@ -8,59 +8,140 @@
  * - ExtractScenesFromScriptOutput - The return type for the extractScenesFromScript function.
  */
 
-import type { SceneDetails } from '@/types/script-vision';
+import type { Scene } from '@/types/script-vision';
 
 export interface ExtractScenesFromScriptInput {
   scriptContent: string;
 }
 
 export interface ExtractScenesFromScriptOutput {
-    scenes: SceneDetails[];
+    scenes: Scene[];
 }
 
 const OLLAMA_URL = 'http://localhost:11434/api/generate';
 const OLLAMA_MODEL = 'gemma3:27b';
 
-const PROMPT_TEMPLATE = `You are an experienced film concept designer. Your task is to analyze the provided script and break it down into distinct scenes. For each scene, you must extract detailed information and format it into a JSON object. Please strictly adhere to the following JSON structure and content specifications.
+const PROMPT_TEMPLATE = `You are a film scene extraction and structuring AI.
+Your job is to read a Russian film script and segment WHOLE SCRIPT into scenes and subscenes, then output a valid JSON structure following the schema below.
 
---------------------------------------------------------------------------------
-**JSON Structure Template For Each Scene:**
+ Main Goals
+
+Identify all scene headers (ИНТ., НАТ., ДЕНЬ, НОЧЬ, etc.).
+
+Split each scene into subscenes (эмоциональные, событийные, или визуальные блоки).
+
+Fill each field in the schema strictly based on script content, without invention.
+
+Output only JSON, with no explanations, markdown, or extra text.
+
+Always ensure that the JSON is syntactically valid and fully parseable.
+
+ Required JSON Schema
+
+Each scene must strictly follow this format:
+
 {
-  "description": "A one-sentence summary of the scene.",
-  "shot": {
-    "composition": "Describe shot type (e.g., wide shot, medium shot, close-up), focal length, camera, and depth of field.",
-    "camera_motion": "Describe camera movement (e.g., static, pan, dolly, crane)."
-  },
-  "subjects": [
+  "scene_id": "",
+  "scene_title": "",
+  "time_period": "",
+  "characters": [],
+  "general_context": "",
+  "subscenes": [
     {
-      "name": "The name of the subject (e.g., 'Sarah', 'The Creature').",
-      "description": "Detailed description of a main subject (character, animal, or object), including appearance, age, ethnicity, and unique features.",
-      "wardrobe": "Describe the subject's clothing. Use 'N/A' if not applicable."
+      "subscene_id": "",
+      "description": "",
+      "emotion": "",
+      "camera_hint": "",
+      "props": [],
+      "dialogue_excerpt": ""
     }
-  ],
-  "scene": {
-    "location": "Specify the exact location.",
-    "time_of_day": "Specify the time (e.g., dawn, midday, night).",
-    "environment": "Describe the surrounding environment and atmosphere."
-  },
-  "visual_details": {
-    "action": "A summary of the main action in the scene.",
-    "props": "List all relevant props. Use 'N/A' if there are none."
-  },
-  "cinematography": {
-    "lighting": "Describe the lighting (e.g., natural light, campfire, soft HDR).",
-    "tone": "Describe the emotional or stylistic feel (e.g., fierce, mystical, dreamy, realistic)."
-  }
+  ]
 }
---------------------------------------------------------------------------------
-**Content Generation Guidelines:**
 
-*   **Scene Separation**: Identify each distinct scene in the script. A scene is defined by a change in location or a significant jump in time.
-*   **Subjects Array**: The "subjects" field must be an array, even if there is only one subject. Identify every distinct subject in the scene and create a separate object for each within the "subjects" array. Ensure the "name" field is populated with the subject's name as identified in the script.
-*   **Granularity of Detail**: Fill in each field with as much specific detail as can be inferred from the script. If a detail is not present, use a sensible default or state that it's not specified.
-*   **Consistency**: Ensure every scene object in the output array follows the specified JSON structure.
-*   **Language**: Use clear, concise, professional filmmaking terminology.
-*   **IMPORTANT**: Your output must be ONLY the JSON object containing the array of scenes, with no additional text or explanations before or after it.
+
+If there are multiple scenes, return them as an array of JSON objects:
+
+[
+  { ... },
+  { ... }
+]
+
+ Rules & Validation Checks
+1. Formatting
+
+Output only JSON, not markdown or text commentary.
+
+No backticks, no extra symbols, no “Explanation:” sections.
+
+JSON must be fully parsable by standard JSON.parse().
+
+2. Field completeness
+
+All keys from the schema must be present.
+
+Empty values must be empty strings "" or empty arrays [].
+
+Do not remove keys if data is missing.
+
+scene_id and all subscene_id values must be unique.
+
+3. Logical structure
+
+scene_id = scene number (e.g. "8-1").
+
+subscene_id = scene number + lowercase letter (e.g. "8-1a", "8-1b").
+
+Each subscene must describe one visual or emotional beat.
+
+Keep subscenes in chronological order.
+
+4. Language
+
+Use Russian for all text.
+
+Preserve all Russian names and dialogue as written.
+
+Do not translate or paraphrase.
+
+5. Content accuracy
+
+Extract only explicit details mentioned in the script.
+
+Do not invent visuals or add hypothetical details.
+
+Dialogue excerpts must be short (1–2 lines) and authentic.
+
+6. Safety & fallback
+
+If something cannot be extracted:
+
+Leave the field empty ("" or []), but do not remove it.
+
+If the script has no clear scenes, output an empty JSON array: [].
+
+ Final Output Example
+
+(for illustration only — model must not include commentary like this)
+
+[
+  {
+    "scene_id": "8-1",
+    "scene_title": "ИНТ. КАБИНЕТ ПСИХОЛОГА. ДЕНЬ",
+    "time_period": "2016",
+    "characters": ["Арина (16)", "Психолог (40)"],
+    "general_context": "Диалог между Ариной и психологом. Отстраненность переходит в эмоциональный срыв и исповедь.",
+    "subscenes": [
+      {
+        "subscene_id": "8-1a",
+        "description": "Арина сидит с телефоном и скучает. Начинается диалог с психологом.",
+        "emotion": "раздражение, равнодушие",
+        "camera_hint": "средний план, дневной свет",
+        "props": ["телефон", "диван"],
+        "dialogue_excerpt": "АРИНА: Вы будете что-то спрашивать?"
+      }
+    ]
+  }
+]
 
 Here is the script content to analyze:
   {{scriptContent}}
@@ -81,7 +162,7 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
                 model: OLLAMA_MODEL,
                 prompt: prompt,
                 format: 'json',
-                stream: false, // We ask for a single response, not a stream
+                stream: false,
             }),
         });
 
@@ -95,11 +176,10 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
         
         console.log('Received response from Ollama.');
 
-        // The actual JSON content is in the `response` property of the returned object
         const jsonContent = JSON.parse(responseData.response);
 
-        // The top-level object from the model should match our output schema
-        return jsonContent as ExtractScenesFromScriptOutput;
+        // The model returns the array directly
+        return { scenes: jsonContent as Scene[] };
 
     } catch (error) {
         console.error('Error calling Ollama API:', error);

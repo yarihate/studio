@@ -1,50 +1,34 @@
-
-export type Subject = {
-  name?: string | null;
-  description?: string | null;
-  wardrobe?: string | null;
+export type SubScene = {
+  subscene_id: string;
+  description: string;
+  emotion: string;
+  camera_hint: string;
+  props: string[];
+  dialogue_excerpt: string;
 };
 
-export type SceneDetails = {
-  description?: string | null;
-  shot: {
-    composition?: string | null;
-    camera_motion?: string | null;
-  };
-  subjects?: Subject[] | null;
-  scene: {
-    location?: string | null;
-    time_of_day?: string | null;
-    environment?: string | null;
-  };
-  visual_details: {
-    action?: string | null;
-    props?: string | null;
-  };
-  cinematography: {
-    lighting?: string | null;
-    tone?: string | null;
-  };
+export type Scene = {
+  scene_id: string;
+  scene_title: string;
+  time_period: string;
+  characters: string[];
+  general_context: string;
+  subscenes: SubScene[];
 };
-
-export interface Scene {
-  id: number;
-  details: SceneDetails;
-}
 
 export interface Sketch {
-  sceneId: number;
+  sceneId: string;
   imageUrls: string[];
 }
 
 export interface DetailedImage {
   id: number;
-  sceneId: number;
+  sceneId: string;
   imageUrl: string;
 }
 
 export interface Animation {
   id: number;
-  sceneId: number;
+  sceneId: string;
   imageUrl: string;
 }
