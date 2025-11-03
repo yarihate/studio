@@ -1,7 +1,5 @@
-'use server';
-import 'dotenv/config';
 import {genkit} from 'genkit';
-import {openai} from 'genkitx-openai';
+import {openAI} from 'genkitx-openai';
 
 // Определяем модель, которую будем использовать
 const localLlm = process.env.LOCAL_LLM_NAME || 'qwen';
@@ -9,7 +7,7 @@ const localLlm = process.env.LOCAL_LLM_NAME || 'qwen';
 export const ai = genkit({
   plugins: [
     // Подключаем плагин OpenAI
-    openai({
+    openAI({
       // Указываем базовый URL вашего локального сервера
       baseURL: process.env.OPENAI_API_BASE_URL,
       // Указываем API ключ (для Ollama это может быть просто 'ollama')
