@@ -35,6 +35,7 @@ const extractScenesPrompt = ai.definePrompt({
   model: `${localLlm}`,
   config: {
     response_format: { type: 'json_object' },
+    stream: false,
   },
   prompt: `You are an experienced film concept designer. Your task is to analyze the provided script and break it down into distinct scenes. For each scene, you must extract detailed information and format it into a JSON object. Please strictly adhere to the following JSON structure and content specifications.
 
