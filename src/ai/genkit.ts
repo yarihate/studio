@@ -8,10 +8,10 @@ export const ai = genkit({
   plugins: [
     // Подключаем плагин OpenAI
     openAI({
-      // Указываем базовый URL вашего локального сервера
-      baseURL: process.env.OPENAI_API_BASE_URL,
+      // Указываем базовый URL вашего локального сервера Ollama
+      baseURL: 'http://localhost:11434/v1',
       // Указываем API ключ (для Ollama это может быть просто 'ollama')
-      apiKey: process.env.OPENAI_API_KEY || 'ollama',
+      apiKey: 'ollama',
     }),
   ],
   models: [

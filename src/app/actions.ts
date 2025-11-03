@@ -33,73 +33,11 @@ export async function handleExtractScenesFromFile(formData: FormData) {
       throw new Error('No file provided.');
     }
 
-    // Mocking the scene extraction to avoid 503 errors from the AI service.
-    const mockScenes = [
-        {
-          "description": "A tense standoff in a neon-lit alleyway at night.",
-          "shot": {
-            "composition": "Medium close-up, 50mm lens, ARRI Alexa, shallow depth of field.",
-            "camera_motion": "Slow handheld shake to build tension."
-          },
-          "subjects": [
-            {
-              "name": "Kael",
-              "description": "A 30-year-old detective, weary and resolute, with a scar above his right eye.",
-              "wardrobe": "A rain-soaked trench coat over a simple shirt and tie."
-            },
-            {
-              "name": "Lira",
-              "description": "A 25-year-old informant, nervous but defiant, clutching a data chip.",
-              "wardrobe": "A futuristic, reflective jacket and dark cargo pants."
-            }
-          ],
-          "scene": {
-            "location": "A narrow alley between towering skyscrapers in Neo-Kyoto.",
-            "time_of_day": "Night",
-            "environment": "Rain-slicked pavement reflecting holographic advertisements. Steam rises from sewer grates."
-          },
-          "visual_details": {
-            "action": "Kael confronts Lira, who is cornered against a wall.",
-            "props": "A discarded newspaper, overflowing dumpster, a flickering neon sign for 'The Serpent's Kiss' bar."
-          },
-          "cinematography": {
-            "lighting": "Harsh, colored light from neon signs creates dramatic highlights and deep shadows. A single backlight rims the subjects.",
-            "tone": "Tense, suspenseful, noir."
-          }
-        },
-        {
-          "description": "A serene moment of discovery in a lush, ancient forest.",
-          "shot": {
-            "composition": "Wide shot, 24mm lens, RED Dragon, deep depth of field.",
-            "camera_motion": "Slow, smooth dolly-in towards the subject."
-          },
-          "subjects": [
-            {
-              "name": "Elara",
-              "description": "A young botanist with bright, curious eyes and dirt-smudged cheeks.",
-              "wardrobe": "Practical hiking gear, worn and comfortable."
-            }
-          ],
-          "scene": {
-            "location": "The heart of the Amazon rainforest, near a waterfall.",
-            "time_of_day": "Midday",
-            "environment": "Sunlight filters through the dense canopy, creating a dappled effect. The air is thick with humidity and the sound of birds."
-          },
-          "visual_details": {
-            "action": "Elara gently touches a glowing, bioluminescent flower that has never been seen before.",
-            "props": "A leather-bound research journal, a backpack with tools, the unique glowing flower."
-          },
-          "cinematography": {
-            "lighting": "Natural, dappled sunlight, with the flower itself acting as a soft, magical key light.",
-            "tone": "Wonder, discovery, peaceful."
-          }
-        }
-      ];
+    const scriptContent = await getScriptContent(file);
 
-    // This simulates a short delay as if the AI were processing the request.
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const scenes = await extractScenesFromScript({ scriptContent });
 
-    return { scenes: mockScenes };
+    return scenes;
 
   } catch (error) {
     console.error('Error extracting scenes:', error);
