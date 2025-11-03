@@ -35,9 +35,9 @@ export async function handleExtractScenesFromFile(formData: FormData) {
 
     const scriptContent = await getScriptContent(file);
 
-    const scenes = await extractScenesFromScript({ scriptContent });
+    const result = await extractScenesFromScript({ scriptContent });
 
-    return scenes;
+    return result;
 
   } catch (error) {
     console.error('Error extracting scenes:', error);
