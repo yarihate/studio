@@ -20,9 +20,9 @@ Install the project dependencies by running the following command in your termin
 npm install
 ```
 
-### Running the Development Servers
+### Running the Development Server
 
-This project requires two separate development servers to be running simultaneously: one for the Next.js frontend and one for the Genkit AI flows.
+This project requires a single development server for the Next.js frontend. The AI logic runs within this same server process.
 
 1.  **Start the Next.js App:** Open a terminal and run:
 
@@ -31,14 +31,6 @@ This project requires two separate development servers to be running simultaneou
     ```
 
     Your web application will be available at `http://localhost:9002`.
-
-2.  **Start the Genkit Flows:** Open a *second* terminal and run:
-
-    ```bash
-    npm run genkit:dev
-    ```
-
-    This will start the Genkit development server, which your Next.js app will use to communicate with the AI models.
 
 ---
 
@@ -58,9 +50,9 @@ This project requires two separate development servers to be running simultaneou
 npm install
 ```
 
-### Запуск серверов для разработки
+### Запуск сервера для разработки
 
-Этот проект требует одновременного запуска двух серверов: одного для фронтенда на Next.js и второго для AI-процессов Genkit.
+Этот проект требует запуска одного сервера для фронтенда на Next.js. AI-логика выполняется в рамках этого же серверного процесса.
 
 1.  **Запустите приложение Next.js:** Откройте терминал и выполните:
 
@@ -69,11 +61,3 @@ npm install
     ```
 
     Ваше веб-приложение будет доступно по адресу `http://localhost:9002`.
-
-2.  **Запустите процессы Genkit:** Откройте *второй* терминал и выполните:
-
-    ```bash
-    npm run genkit:dev
-    ```
-
-    Это запустит сервер разработки Genkit, который ваше приложение Next.js будет использовать для взаимодействия с AI-моделями.
