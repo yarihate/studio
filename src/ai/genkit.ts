@@ -12,6 +12,8 @@ export const ai = genkit({
       baseURL: 'http://localhost:11434/v1',
       // Указываем API ключ (для Ollama это может быть просто 'ollama')
       apiKey: 'ollama',
+      // Разрешаем использование любой модели
+      modelName: [localLlm],
     }),
   ],
   logLevel: 'debug',
