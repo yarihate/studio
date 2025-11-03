@@ -2,7 +2,7 @@ import {genkit} from 'genkit';
 import {openAI} from 'genkitx-openai';
 
 // Определяем модель, которую будем использовать
-export const localLlm = process.env.LOCAL_LLM_NAME || 'qwen';
+export const localLlm = process.env.LOCAL_LLM_NAME || 'gemma3:27b';
 
 export const ai = genkit({
   plugins: [
