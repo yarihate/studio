@@ -14,4 +14,5 @@ export const ai = genkit({
       apiKey: 'ollama',
     }),
   ],
+  logLevel: 'debug',
 });
