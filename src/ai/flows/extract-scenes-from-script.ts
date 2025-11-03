@@ -8,7 +8,7 @@
  * - ExtractScenesFromScriptOutput - The return type for the extractScenesFromScript function.
  */
 
-import {ai, localLlm} from '@/ai/genkit';
+import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { SceneDetailsSchema } from '@/types/script-vision';
 
@@ -32,7 +32,6 @@ const extractScenesPrompt = ai.definePrompt({
   name: 'extractScenesPrompt',
   input: {schema: ExtractScenesFromScriptInputSchema},
   output: {schema: ExtractScenesFromScriptOutputSchema},
-  model: `${localLlm}`,
   config: {
     response_format: { type: 'json_object' },
     stream: false,
