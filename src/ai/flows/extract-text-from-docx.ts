@@ -7,32 +7,22 @@
  * - ExtractTextFromDocxOutput - The return type for the extractTextFromDocx function.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import mammoth from 'mammoth';
 
-const ExtractTextFromDocxInputSchema = z.object({
-  docxBuffer: z.instanceof(Buffer).describe('The buffer of the docx file.'),
-});
-export type ExtractTextFromDocxInput = z.infer<typeof ExtractTextFromDocxInputSchema>;
-
-const ExtractTextFromDocxOutputSchema = z.object({
-  text: z.string().describe('The extracted text content.'),
-});
-export type ExtractTextFromDocxOutput = z.infer<typeof ExtractTextFromDocxOutputSchema>;
-
-export async function extractTextFromDocx(input: ExtractTextFromDocxInput): Promise<ExtractTextFromDocxOutput> {
-  return extractTextFromDocxFlow(input);
+export interface ExtractTextFromDocxInput {
+  docxBuffer: Buffer;
 }
 
-const extractTextFromDocxFlow = ai.defineFlow(
-  {
-    name: 'extractTextFromDocxFlow',
-    inputSchema: ExtractTextFromDocxInputSchema,
-    outputSchema: ExtractTextFromDocxOutputSchema,
-  },
-  async input => {
+export interface ExtractTextFromDocxOutput {
+  text: string;
+}
+
+export async function extractTextFromDocx(input: ExtractTextFromDocxInput): Promise<ExtractTextFromDocxOutput> {
+  try {
     const { value } = await mammoth.extractRawText({ buffer: input.docxBuffer });
     return { text: value };
+  } catch (error) {
+    console.error('Error extracting text from DOCX:', error);
+    throw new Error('Failed to extract text from the DOCX file.');
   }
-);
+}
