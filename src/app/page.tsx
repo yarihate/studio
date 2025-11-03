@@ -28,6 +28,7 @@ export default function HomePage() {
 
   const handleScriptSubmit = async (file: File) => {
     setIsExtractingScenes(true);
+    setScenes([]); // Reset scenes immediately
     setSketches([]);
     setDetailedImages([]);
     setAnimations([]);
@@ -36,22 +37,24 @@ export default function HomePage() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const sceneResult = await handleExtractScenesFromFile(formData);
+    const result = await handleExtractScenesFromFile(formData);
 
-    if (sceneResult.error || !sceneResult.scenes) {
+    setIsExtractingScenes(false);
+
+    if ('error' in result) {
       toast({
         variant: 'destructive',
         title: 'Error',
         description:
-          sceneResult.error || 'An unknown error occurred while extracting scenes.',
+          result.error || 'An unknown error occurred while extracting scenes.',
       });
-      setIsExtractingScenes(false);
       return;
     }
 
-    setScenes(sceneResult.scenes);
-    setSelectedSceneId(sceneResult.scenes[0]?.scene_id || null);
-    setIsExtractingScenes(false);
+    if (result.scenes) {
+        setScenes(result.scenes);
+        setSelectedSceneId(result.scenes[0]?.scene_id || null);
+    }
   };
 
   const handleGenerateSketchForScene = async (scene: Scene) => {
