@@ -8,7 +8,7 @@
  * - ExtractScenesFromScriptOutput - The return type for the extractScenesFromScript function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, localLlm} from '@/ai/genkit';
 import {z} from 'genkit';
 import { SceneDetailsSchema } from '@/types/script-vision';
 
@@ -32,6 +32,7 @@ const extractScenesPrompt = ai.definePrompt({
   name: 'extractScenesPrompt',
   input: {schema: ExtractScenesFromScriptInputSchema},
   output: {schema: ExtractScenesFromScriptOutputSchema},
+  model: `openai/${localLlm}`,
   prompt: `You are an experienced film concept designer. Your task is to analyze the provided script and break it down into distinct scenes. For each scene, you must extract detailed information and format it into a JSON object. Please strictly adhere to the following JSON structure and content specifications.
 
 --------------------------------------------------------------------------------

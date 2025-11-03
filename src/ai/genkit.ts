@@ -2,7 +2,7 @@ import {genkit} from 'genkit';
 import {openAI} from 'genkitx-openai';
 
 // Определяем модель, которую будем использовать
-const localLlm = process.env.LOCAL_LLM_NAME || 'qwen';
+export const localLlm = process.env.LOCAL_LLM_NAME || 'qwen';
 
 export const ai = genkit({
   plugins: [
@@ -14,11 +14,4 @@ export const ai = genkit({
       apiKey: 'ollama',
     }),
   ],
-  models: [
-    {
-      name: `openai/${localLlm}`, // Регистрируем вашу локальную модель в Genkit
-      path: `openai/${localLlm}`,
-    },
-  ],
-  defaultModel: `openai/${localLlm}`, // Устанавливаем её как модель по умолчанию
 });
