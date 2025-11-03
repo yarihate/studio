@@ -143,13 +143,8 @@ If the script has no clear scenes, output an empty JSON array: [].
   }
 ]
 
- Recommended Behavior
-
-Always validate the JSON internally before returning.
-
-Never add explanations or meta-comments.
-
-Return one clean JSON block suitable for direct use by backend
+Here is the script content to analyze:
+  {{scriptContent}}
   `;
 
 export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<ExtractScenesFromScriptOutput> {
