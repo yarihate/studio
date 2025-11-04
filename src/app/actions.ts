@@ -3,7 +3,6 @@
 import { extractTextFromDocx } from '@/ai/flows/extract-text-from-docx';
 import { extractTextFromPdf } from '@/ai/flows/extract-text-from-pdf';
 import { extractScenesFromScript } from '@/ai/flows/extract-scenes-from-script';
-import { toast } from '@/hooks/use-toast';
 import type { Scene } from '@/types/script-vision';
 
 async function getScriptContent(file: File): Promise<string> {
@@ -27,7 +26,7 @@ async function getScriptContent(file: File): Promise<string> {
 }
 
 
-export async function handleExtractScenesFromFile(formData: FormData): Promise<{ scenes: Scene[] } | { error: string }> {
+export async function handleExtractScenesFromFile(formData: FormData): Promise<ReadableStream<Uint8Array> | { error: string }> {
   try {
     const file = formData.get('file') as File;
     if (!file) {
@@ -36,9 +35,9 @@ export async function handleExtractScenesFromFile(formData: FormData): Promise<{
 
     const scriptContent = await getScriptContent(file);
 
-    const result = await extractScenesFromScript({ scriptContent });
-
-    return result;
+    // This function now returns a stream directly.
+    const stream = await extractScenesFromScript({ scriptContent });
+    return stream;
 
   } catch (error) {
     console.error('Error extracting scenes:', error);

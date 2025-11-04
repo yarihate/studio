@@ -1,21 +1,14 @@
 'use server';
 
 /**
- * @fileOverview Extracts scenes from a script using a direct call to Ollama.
+ * @fileOverview Extracts scenes from a script using a direct, streaming call to Ollama.
  *
- * - extractScenesFromScript - A function that extracts scenes from a script.
+ * - extractScenesFromScript - A function that initiates a streaming request to Ollama.
  * - ExtractScenesFromScriptInput - The input type for the extractScenesFromScript function.
- * - ExtractScenesFromScriptOutput - The return type for the extractScenesFromScript function.
  */
-
-import type { Scene } from '@/types/script-vision';
 
 export interface ExtractScenesFromScriptInput {
   scriptContent: string;
-}
-
-export interface ExtractScenesFromScriptOutput {
-    scenes: Scene[];
 }
 
 const OLLAMA_URL = 'http://localhost:11434/api/generate';
@@ -147,11 +140,11 @@ Here is the script content to analyze:
   {{scriptContent}}
   `;
 
-export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<ExtractScenesFromScriptOutput> {
+export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<ReadableStream<Uint8Array>> {
     const prompt = PROMPT_TEMPLATE.replace('{{scriptContent}}', input.scriptContent);
 
     try {
-        console.log(`Sending request to Ollama at ${OLLAMA_URL} with model ${OLLAMA_MODEL}`);
+        console.log(`Sending streaming request to Ollama at ${OLLAMA_URL} with model ${OLLAMA_MODEL}`);
 
         const response = await fetch(OLLAMA_URL, {
             method: 'POST',
@@ -162,7 +155,7 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
                 model: OLLAMA_MODEL,
                 prompt: prompt,
                 format: 'json',
-                stream: false,
+                stream: true, // Enable streaming
             }),
         });
 
@@ -172,14 +165,33 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
             throw new Error(`Ollama API request failed with status ${response.status}: ${errorBody}`);
         }
 
-        const responseData = await response.json();
+        if (!response.body) {
+            throw new Error('Response body is null.');
+        }
+
+        // Ollama streaming returns a series of JSON objects, separated by newlines.
+        // We need to parse each line, extract the 'response' field, and pass it on.
+        const textDecoder = new TextDecoder();
+        const textEncoder = new TextEncoder();
+        const transformStream = new TransformStream({
+            async transform(chunk, controller) {
+                const jsonString = textDecoder.decode(chunk);
+                // Each chunk can contain multiple JSON objects separated by newlines.
+                const jsonObjects = jsonString.split('\n').filter(s => s.trim());
+                for (const objStr of jsonObjects) {
+                    try {
+                        const parsed = JSON.parse(objStr);
+                        if (parsed.response) {
+                            controller.enqueue(textEncoder.encode(parsed.response));
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse JSON chunk from Ollama:", objStr);
+                    }
+                }
+            },
+        });
         
-        console.log('Received response from Ollama.');
-
-        const jsonContent = JSON.parse(responseData.response);
-
-        // The model returns the array directly
-        return { scenes: jsonContent as Scene[] };
+        return response.body.pipeThrough(transformStream);
 
     } catch (error) {
         console.error('Error calling Ollama API:', error);

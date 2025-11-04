@@ -28,7 +28,7 @@ export default function HomePage() {
 
   const handleScriptSubmit = async (file: File) => {
     setIsExtractingScenes(true);
-    setScenes([]); // Reset scenes immediately
+    setScenes([]);
     setSketches([]);
     setDetailedImages([]);
     setAnimations([]);
@@ -37,23 +37,61 @@ export default function HomePage() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const result = await handleExtractScenesFromFile(formData);
+    try {
+      const result = await handleExtractScenesFromFile(formData);
 
-    setIsExtractingScenes(false);
+      if ('error' in result) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: result.error || 'An unknown error occurred while extracting scenes.',
+        });
+        setIsExtractingScenes(false);
+        return;
+      }
+      
+      // Handle the stream
+      const reader = result.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedJson = '';
 
-    if ('error' in result) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        accumulatedJson += decoder.decode(value, { stream: true });
+      }
+
+      // Final decode to handle any remaining bytes
+      accumulatedJson += decoder.decode();
+
+      try {
+        const parsedScenes = JSON.parse(accumulatedJson);
+        if (Array.isArray(parsedScenes)) {
+          setScenes(parsedScenes);
+          setSelectedSceneId(parsedScenes[0]?.scene_id || null);
+        } else {
+            throw new Error("Parsed data is not an array.");
+        }
+      } catch (e) {
+          console.error("Failed to parse final JSON:", e, "Accumulated JSON:", accumulatedJson);
+          toast({
+              variant: 'destructive',
+              title: 'Processing Error',
+              description: 'Failed to process the data from the AI model. The format was invalid.',
+          });
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       toast({
         variant: 'destructive',
         title: 'Error',
-        description:
-          result.error || 'An unknown error occurred while extracting scenes.',
+        description: `An unexpected error occurred: ${errorMessage}`,
       });
-      return;
-    }
-
-    if (result.scenes) {
-        setScenes(result.scenes);
-        setSelectedSceneId(result.scenes[0]?.scene_id || null);
+    } finally {
+        setIsExtractingScenes(false);
     }
   };
 
