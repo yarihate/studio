@@ -38,6 +38,7 @@ export default function HomePage() {
     formData.append('file', file);
 
     try {
+      // We now await the full result, which is either the array of scenes or an error object
       const result = await handleExtractScenesFromFile(formData);
 
       if ('error' in result) {
@@ -46,41 +47,15 @@ export default function HomePage() {
           title: 'Error',
           description: result.error || 'An unknown error occurred while extracting scenes.',
         });
-        setIsExtractingScenes(false);
         return;
       }
       
-      // Handle the stream
-      const reader = result.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedJson = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        accumulatedJson += decoder.decode(value, { stream: true });
-      }
-
-      // Final decode to handle any remaining bytes
-      accumulatedJson += decoder.decode();
-
-      try {
-        const parsedScenes = JSON.parse(accumulatedJson);
-        if (Array.isArray(parsedScenes)) {
-          setScenes(parsedScenes);
-          setSelectedSceneId(parsedScenes[0]?.scene_id || null);
-        } else {
-            throw new Error("Parsed data is not an array.");
-        }
-      } catch (e) {
-          console.error("Failed to parse final JSON:", e, "Accumulated JSON:", accumulatedJson);
-          toast({
-              variant: 'destructive',
-              title: 'Processing Error',
-              description: 'Failed to process the data from the AI model. The format was invalid.',
-          });
+      // The result is guaranteed to be a Scene[] array here
+      if (Array.isArray(result)) {
+        setScenes(result);
+        setSelectedSceneId(result[0]?.scene_id || null);
+      } else {
+        throw new Error("Received invalid data from server.");
       }
 
     } catch (error) {

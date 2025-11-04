@@ -26,7 +26,7 @@ async function getScriptContent(file: File): Promise<string> {
 }
 
 
-export async function handleExtractScenesFromFile(formData: FormData): Promise<ReadableStream<Uint8Array> | { error: string }> {
+export async function handleExtractScenesFromFile(formData: FormData): Promise<Scene[] | { error: string }> {
   try {
     const file = formData.get('file') as File;
     if (!file) {
@@ -34,10 +34,10 @@ export async function handleExtractScenesFromFile(formData: FormData): Promise<R
     }
 
     const scriptContent = await getScriptContent(file);
-
-    // This function now returns a stream directly.
-    const stream = await extractScenesFromScript({ scriptContent });
-    return stream;
+    
+    // This function now returns a full array of scenes
+    const scenes = await extractScenesFromScript({ scriptContent });
+    return scenes;
 
   } catch (error) {
     console.error('Error extracting scenes:', error);
