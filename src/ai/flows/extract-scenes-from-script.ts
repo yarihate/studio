@@ -176,6 +176,9 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
         const transformStream = new TransformStream({
             async transform(chunk, controller) {
                 const jsonString = textDecoder.decode(chunk);
+                // Log the raw chunk received from Ollama
+                console.log('Received from Ollama:', jsonString);
+
                 // Each chunk can contain multiple JSON objects separated by newlines.
                 const jsonObjects = jsonString.split('\n').filter(s => s.trim());
                 for (const objStr of jsonObjects) {
