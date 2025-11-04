@@ -13,7 +13,7 @@ export interface ExtractScenesFromScriptInput {
   scriptContent: string;
 }
 
-const OLLAMA_URL = 'http://host.docker.internal:11434/api/generate';
+const OLLAMA_URL = 'http://localhost:11434/api/generate';
 const OLLAMA_MODEL = 'gemma3:27b';
 
 const PROMPT_TEMPLATE = `You are a film scene extraction and structuring AI.
@@ -133,6 +133,23 @@ If the script has no clear scenes, output an empty JSON array: [].
         "camera_hint": "средний план, дневной свет",
         "props": ["телефон", "диван"],
         "dialogue_excerpt": "АРИНА: Вы будете что-то спрашивать?"
+      }
+    ]
+  },
+  {
+    "scene_id": "8-2",
+    "scene_title": "НАТ/ИНТ. УЛИЦА (У КАБИНЕТА ПСИХОЛОГА).МАШИНА МИТЬКИНОЙ МАМЫ. ДЕНЬ.",
+    "time_period": "ДЕНЬ",
+    "characters": ["Арина (16)", "Митя", "Мама Мити"],
+    "general_context": "Арина выходит из кабинета психолога и садится в машину к Мите и его маме. Она не проявляет энтузиазма.",
+    "subscenes": [
+      {
+        "subscene_id": "8-2a",
+        "description": "Арина и Митя обмениваются короткими фразами.",
+        "emotion": "безразличие, усталость",
+        "camera_hint": "средний план",
+        "props": [],
+        "dialogue_excerpt": "АРИНА: Ты зачем мне звонил? Я из-за тебя телефон разбила."
       }
     ]
   }
