@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview Extracts scenes from a script using a direct, streaming call to Ollama.
+ * @fileOverview Extracts scenes from a script using a direct, non-streaming call to Ollama.
  *
- * - extractScenesFromScript - A function that initiates a streaming request to Ollama.
+ * - extractScenesFromScript - A function that initiates a request to Ollama and waits for the full response.
  * - ExtractScenesFromScriptInput - The input type for the extractScenesFromScript function.
  */
 
@@ -13,7 +13,7 @@ export interface ExtractScenesFromScriptInput {
   scriptContent: string;
 }
 
-const OLLAMA_URL = 'http://localhost:11434/api/generate';
+const OLLAMA_URL = 'http://host.docker.internal:11434/api/generate';
 const OLLAMA_MODEL = 'gemma3:27b';
 
 const PROMPT_TEMPLATE = `You are a film scene extraction and structuring AI.
@@ -161,6 +161,8 @@ Here is the script content to analyze:
 
 export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<Scene[]> {
     const prompt = PROMPT_TEMPLATE.replace('{{scriptContent}}', input.scriptContent);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
 
     try {
         console.log(`Sending request to Ollama at ${OLLAMA_URL} with model ${OLLAMA_MODEL}`);
@@ -176,7 +178,10 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
                 format: 'json',
                 stream: false, // Wait for the full response
             }),
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorBody = await response.text();
@@ -185,8 +190,6 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
         }
 
         const jsonResponse = await response.json();
-        console.log('Received from Ollama:', jsonResponse.response);
-
         const jsonContent = JSON.parse(jsonResponse.response);
         
         if (!Array.isArray(jsonContent)) {
@@ -196,6 +199,7 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
         return jsonContent as Scene[];
 
     } catch (error) {
+        clearTimeout(timeoutId); // Also clear timeout on error
         console.error('Error calling or parsing Ollama API response:', error);
         throw error;
     }
