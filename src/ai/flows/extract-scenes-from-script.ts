@@ -162,7 +162,7 @@ Here is the script content to analyze:
 export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<Scene[]> {
     const prompt = PROMPT_TEMPLATE.replace('{{scriptContent}}', input.scriptContent);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+    const timeoutId = setTimeout(() => controller.abort(), 1800000); // 30 minutes timeout
 
     try {
         console.log(`Sending request to Ollama at ${OLLAMA_URL} with model ${OLLAMA_MODEL}`);
