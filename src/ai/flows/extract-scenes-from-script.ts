@@ -205,7 +205,9 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
                 format: 'json',
                 stream: false, // Wait for the full response
                 options: {
-                    context_length: 16000
+                  num_ctx: 16000,
+                  temperature: 0.1,
+                  top_p: 0.9
                 }
             }),
             signal: controller.signal,
