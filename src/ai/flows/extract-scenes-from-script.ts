@@ -35,7 +35,7 @@ Always produce syntactically valid JSON that can be parsed via JSON.parse().
  Required JSON Schema
 
 Each scene must follow this structure:
-
+[
 {
   "scene_id": "",
   "scene_title": "",
@@ -69,6 +69,7 @@ Each scene must follow this structure:
     }
   ]
 }
+]
 
 
 If there are multiple scenes, return them as a single JSON array of objects:
@@ -124,7 +125,7 @@ Keep dialogue excerpts short (1–2 lines).
 
 If a scene or subscene contains sensitive or restricted material (violence, sexual content, etc.),
 do not stop processing. Instead, replace the content as follows:
-
+[
 {
   "subscene_id": "8-5a",
   "description": "[ЗАЦЕНЗУРИРОВАНО: содержание скрыто]",
@@ -138,6 +139,7 @@ do not stop processing. Instead, replace the content as follows:
     "style": ""
   }
 }
+]
 
 
 Continue generating the rest of the JSON normally.
@@ -188,6 +190,39 @@ Failure to output a JSON array is considered a formatting error.
         "cinematography": {
           "tone": "нейтральный, будничный",
           "style": "статичный, реалистичный"
+        }
+      }
+    ]
+  },
+   {
+    "scene_id": "8-2",
+    "scene_title": "",
+    "time_period": "",
+    "characters": [""],
+    "general_context": "",
+    "location": {
+      "place": "",
+      "environment": ""
+    },
+    "cinematography": {
+      "tone": "",
+      "style": ""
+    },
+    "subscenes": [
+      {
+        "subscene_id": "8-2a",
+        "description": "",
+        "emotion": "",
+        "camera_hint": "",
+        "props": [""],
+        "dialogue_excerpt": "",
+        "location": {
+          "place": "",
+          "environment": ""
+        },
+        "cinematography": {
+          "tone": "",
+          "style": ""
         }
       }
     ]
