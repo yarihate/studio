@@ -216,6 +216,9 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
                 prompt: prompt,
                 format: 'json',
                 stream: false, // Wait for the full response
+                options: {
+                    context_length: 16000
+                }
             }),
             signal: controller.signal,
         });
