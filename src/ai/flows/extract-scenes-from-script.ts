@@ -17,23 +17,24 @@ const OLLAMA_URL = 'http://localhost:11434/api/generate';
 const OLLAMA_MODEL = 'gemma3:27b';
 
 const PROMPT_TEMPLATE = `You are a film scene extraction and structuring AI.
-Your job is to read a Russian film script and segment WHOLE SCRIPT into scenes and subscenes, then output a valid JSON structure following the schema below.
+Your job is to read a Russian film script and segment the WHOLE SCRIPT into scenes and subscenes, then output a valid JSON array strictly following the schema below.
+
+No commentary, markdown, or text outside the JSON is allowed.
+Always output a single valid JSON array, even if the script contains only one scene.
 
  Main Goals
 
 Identify all scene headers (ИНТ., НАТ., ДЕНЬ, НОЧЬ, etc.).
 
-Split each scene into subscenes (эмоциональные, событийные, или визуальные блоки).
+Split each scene into subscenes (эмоциональные, событийные или визуальные блоки).
 
-Fill each field in the schema strictly based on script content, without invention.
+Fill every field in the schema strictly based on script content (no invention).
 
-Output only JSON, with no explanations, markdown, or extra text.
-
-Always ensure that the JSON is syntactically valid and fully parseable.
+Always produce syntactically valid JSON that can be parsed via JSON.parse().
 
  Required JSON Schema
 
-Each scene must strictly follow this format:
+Each scene must follow this structure:
 
 {
   "scene_id": "",
@@ -41,6 +42,14 @@ Each scene must strictly follow this format:
   "time_period": "",
   "characters": [],
   "general_context": "",
+  "location": {
+    "place": "",
+    "environment": ""
+  },
+  "cinematography": {
+    "tone": "",
+    "style": ""
+  },
   "subscenes": [
     {
       "subscene_id": "",
@@ -48,76 +57,107 @@ Each scene must strictly follow this format:
       "emotion": "",
       "camera_hint": "",
       "props": [],
-      "dialogue_excerpt": ""
+      "dialogue_excerpt": "",
+      "location": {
+        "place": "",
+        "environment": ""
+      },
+      "cinematography": {
+        "tone": "",
+        "style": ""
+      }
     }
   ]
 }
 
 
-If there are multiple scenes, return them as an array of JSON objects:
+If there are multiple scenes, return them as a single JSON array of objects:
 
 [
   { ... },
   { ... }
 ]
 
- Rules & Validation Checks
+⚙️ Rules & Validation Checks
+
 1. Formatting
 
-Output only JSON, not markdown or text commentary.
+Output only raw JSON, no markdown, code fences, or explanations.
 
-No backticks, no extra symbols, no “Explanation:” sections.
-
-JSON must be fully parsable by standard JSON.parse().
+The result must be directly parseable using JSON.parse() without errors.
 
 2. Field completeness
 
-All keys from the schema must be present.
+All keys from the schema must be present in every object.
 
-Empty values must be empty strings "" or empty arrays [].
+If information is missing → use "" for strings, [] for arrays, {} for nested objects.
 
-Do not remove keys if data is missing.
+Never remove keys.
 
-scene_id and all subscene_id values must be unique.
+3. Structure
 
-3. Logical structure
+scene_id = scene number (e.g., "8-1").
 
-scene_id = scene number (e.g. "8-1").
+subscene_id = scene number + lowercase letter (e.g., "8-1a", "8-1b").
 
-subscene_id = scene number + lowercase letter (e.g. "8-1a", "8-1b").
-
-Each subscene must describe one visual or emotional beat.
+Each subscene represents one emotional or visual beat.
 
 Keep subscenes in chronological order.
 
 4. Language
 
-Use Russian for all text.
+Use Russian for all textual fields.
 
-Preserve all Russian names and dialogue as written.
+Preserve all Russian names, lines, and dialogue.
 
-Do not translate or paraphrase.
+Do not translate or rephrase.
 
 5. Content accuracy
 
-Extract only explicit details mentioned in the script.
+Extract only explicit details found in the script.
 
-Do not invent visuals or add hypothetical details.
+Do not invent visuals or dialogue.
 
-Dialogue excerpts must be short (1–2 lines) and authentic.
+Keep dialogue excerpts short (1–2 lines).
 
-6. Safety & fallback
+6. Sensitive content
 
-If something cannot be extracted:
+If a scene or subscene contains sensitive or restricted material (violence, sexual content, etc.),
+do not stop processing. Instead, replace the content as follows:
 
-Leave the field empty ("" or []), but do not remove it.
+{
+  "subscene_id": "8-5a",
+  "description": "[ЗАЦЕНЗУРИРОВАНО: содержание скрыто]",
+  "emotion": "напряжение, тревога",
+  "camera_hint": "",
+  "props": [],
+  "dialogue_excerpt": "[ЗАЦЕНЗУРИРОВАНО]",
+  "location": {},
+  "cinematography": {
+    "tone": "",
+    "style": ""
+  }
+}
 
-If the script has no clear scenes, output an empty JSON array: [].
 
- Final Output Example
+Continue generating the rest of the JSON normally.
 
-(for illustration only — model must not include commentary like this)
+7. Strict JSON Array Enforcement (🚨 NEW RULE)
 
+The final output must always be a JSON array.
+
+Even if the script contains only one scene — wrap that single object in an array:
+
+[ { ... } ]
+
+
+Do not output standalone JSON objects.
+
+Do not output text before or after the array.
+
+Failure to output a JSON array is considered a formatting error.
+
+ Example Output (for illustration only)
 [
   {
     "scene_id": "8-1",
@@ -125,6 +165,14 @@ If the script has no clear scenes, output an empty JSON array: [].
     "time_period": "2016",
     "characters": ["Арина (16)", "Психолог (40)"],
     "general_context": "Диалог между Ариной и психологом. Отстраненность переходит в эмоциональный срыв и исповедь.",
+    "location": {
+      "place": "Кабинет психолога в частной клинике, дневное освещение из окна.",
+      "environment": "Комната с мягким диваном, столом и приглушённым светом."
+    },
+    "cinematography": {
+      "tone": "спокойный, напряжённый",
+      "style": "реалистичный, камерный"
+    },
     "subscenes": [
       {
         "subscene_id": "8-1a",
@@ -132,24 +180,15 @@ If the script has no clear scenes, output an empty JSON array: [].
         "emotion": "раздражение, равнодушие",
         "camera_hint": "средний план, дневной свет",
         "props": ["телефон", "диван"],
-        "dialogue_excerpt": "АРИНА: Вы будете что-то спрашивать?"
-      }
-    ]
-  },
-  {
-    "scene_id": "8-2",
-    "scene_title": "НАТ/ИНТ. УЛИЦА (У КАБИНЕТА ПСИХОЛОГА).МАШИНА МИТЬКИНОЙ МАМЫ. ДЕНЬ.",
-    "time_period": "ДЕНЬ",
-    "characters": ["Арина (16)", "Митя", "Мама Мити"],
-    "general_context": "Арина выходит из кабинета психолога и садится в машину к Мите и его маме. Она не проявляет энтузиазма.",
-    "subscenes": [
-      {
-        "subscene_id": "8-2a",
-        "description": "Арина и Митя обмениваются короткими фразами.",
-        "emotion": "безразличие, усталость",
-        "camera_hint": "средний план",
-        "props": [],
-        "dialogue_excerpt": "АРИНА: Ты зачем мне звонил? Я из-за тебя телефон разбила."
+        "dialogue_excerpt": "АРИНА: Вы будете что-то спрашивать?",
+        "location": {
+          "place": "Диван возле окна.",
+          "environment": "Тёплый солнечный свет, спокойная атмосфера."
+        },
+        "cinematography": {
+          "tone": "нейтральный, будничный",
+          "style": "статичный, реалистичный"
+        }
       }
     ]
   }
@@ -157,16 +196,6 @@ If the script has no clear scenes, output an empty JSON array: [].
 
 Here is the script content to analyze:
   {{scriptContent}}
-
-Recommended Behavior
-
-Always validate JSON internally before returning.
-
-Never add meta-comments.
-
-Always include location, tone, and style fields (empty if not found).
-
-Return a single clean JSON block suitable for backend use.
   `;
 
 export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<Scene[]> {
