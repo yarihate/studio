@@ -13,7 +13,7 @@ export interface ExtractScenesFromScriptInput {
   scriptContent: string;
 }
 
-const OLLAMA_URL = 'http://localhost:11434/api/generate';
+const OLLAMA_URL = 'http://host.docker.internal:11434/api/generate';
 const OLLAMA_MODEL = 'gemma3:27b';
 
 const PROMPT_TEMPLATE = `You are a film scene extraction and structuring AI.
@@ -190,6 +190,10 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
         }
 
         const jsonResponse = await response.json();
+        
+        // Log the raw response from Ollama
+        console.log('Received from Ollama:', jsonResponse.response);
+
         const jsonContent = JSON.parse(jsonResponse.response);
         
         if (!Array.isArray(jsonContent)) {
