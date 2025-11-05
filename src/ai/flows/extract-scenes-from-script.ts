@@ -14,7 +14,7 @@ export interface ExtractScenesFromScriptInput {
 }
 
 const OLLAMA_URL = 'http://localhost:11434/api/generate';
-const OLLAMA_MODEL = 'gemma3:27b';
+const OLLAMA_MODEL = 'gemma3:12b';
 
 const PROMPT_TEMPLATE = `You are a film scene extraction and structuring AI.
 Your job is to read a Russian film script and segment the WHOLE SCRIPT into scenes and subscenes,
