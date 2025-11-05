@@ -22,7 +22,7 @@ Your job is to read a Russian film script and segment the WHOLE SCRIPT into scen
 No commentary, markdown, or text outside the JSON is allowed.
 Always output a single valid JSON array, even if the script contains only one scene.
 
- Main Goals
+Main Goals
 
 Identify all scene headers (ИНТ., НАТ., ДЕНЬ, НОЧЬ, etc.).
 
@@ -32,54 +32,46 @@ Fill every field in the schema strictly based on script content (no invention).
 
 Always produce syntactically valid JSON that can be parsed via JSON.parse().
 
- Required JSON Schema
+Required JSON Schema
 
 Each scene must follow this structure:
 [
 {
-  "scene_id": "",
-  "scene_title": "",
-  "time_period": "",
-  "characters": [],
-  "general_context": "",
-  "location": {
-    "place": "",
-    "environment": ""
-  },
-  "cinematography": {
-    "tone": "",
-    "style": ""
-  },
-  "subscenes": [
-    {
-      "subscene_id": "",
-      "description": "",
-      "emotion": "",
-      "camera_hint": "",
-      "props": [],
-      "dialogue_excerpt": "",
-      "location": {
-        "place": "",
-        "environment": ""
-      },
-      "cinematography": {
-        "tone": "",
-        "style": ""
-      }
-    }
-  ]
+"scene_id": "",
+"scene_title": "",
+"time_period": "",
+"characters": [],
+"general_context": "",
+"location": {
+"place": "",
+"environment": ""
+},
+"cinematography": {
+"tone": "",
+"style": ""
+},
+"subscenes": [
+{
+"subscene_id": "",
+"description": "",
+"emotion": "",
+"camera_hint": "",
+"props": [],
+"dialogue_excerpt": "",
+"location": {
+"place": "",
+"environment": ""
+},
+"cinematography": {
+"tone": "",
+"style": ""
+}
+}
+]
 }
 ]
 
-
-If there are multiple scenes, return them as a single JSON array of objects:
-
-[
-  { ... },
-  { ... }
-]
-
-⚙️ Rules & Validation Checks
+Rules & Validation Checks
 
 1. Formatting
 
@@ -127,17 +119,17 @@ If a scene or subscene contains sensitive or restricted material (violence, sexu
 do not stop processing. Instead, replace the content as follows:
 [
 {
-  "subscene_id": "8-5a",
-  "description": "[ЗАЦЕНЗУРИРОВАНО: содержание скрыто]",
-  "emotion": "напряжение, тревога",
-  "camera_hint": "",
-  "props": [],
-  "dialogue_excerpt": "[ЗАЦЕНЗУРИРОВАНО]",
-  "location": {},
-  "cinematography": {
-    "tone": "",
-    "style": ""
-  }
+"subscene_id": "8-5a",
+"description": "[ЗАЦЕНЗУРИРОВАНО: содержание скрыто]",
+"emotion": "напряжение, тревога",
+"camera_hint": "",
+"props": [],
+"dialogue_excerpt": "[ЗАЦЕНЗУРИРОВАНО]",
+"location": {},
+"cinematography": {
+"tone": "",
+"style": ""
+}
 }
 ]
 
@@ -158,76 +150,6 @@ Do not output standalone JSON objects.
 Do not output text before or after the array.
 
 Failure to output a JSON array is considered a formatting error.
-
- Example Output (for illustration only)
-[
-  {
-    "scene_id": "8-1",
-    "scene_title": "ИНТ. КАБИНЕТ ПСИХОЛОГА. ДЕНЬ",
-    "time_period": "2016",
-    "characters": ["Арина (16)", "Психолог (40)"],
-    "general_context": "Диалог между Ариной и психологом. Отстраненность переходит в эмоциональный срыв и исповедь.",
-    "location": {
-      "place": "Кабинет психолога в частной клинике, дневное освещение из окна.",
-      "environment": "Комната с мягким диваном, столом и приглушённым светом."
-    },
-    "cinematography": {
-      "tone": "спокойный, напряжённый",
-      "style": "реалистичный, камерный"
-    },
-    "subscenes": [
-      {
-        "subscene_id": "8-1a",
-        "description": "Арина сидит с телефоном и скучает. Начинается диалог с психологом.",
-        "emotion": "раздражение, равнодушие",
-        "camera_hint": "средний план, дневной свет",
-        "props": ["телефон", "диван"],
-        "dialogue_excerpt": "АРИНА: Вы будете что-то спрашивать?",
-        "location": {
-          "place": "Диван возле окна.",
-          "environment": "Тёплый солнечный свет, спокойная атмосфера."
-        },
-        "cinematography": {
-          "tone": "нейтральный, будничный",
-          "style": "статичный, реалистичный"
-        }
-      }
-    ]
-  },
-   {
-    "scene_id": "8-2",
-    "scene_title": "",
-    "time_period": "",
-    "characters": [""],
-    "general_context": "",
-    "location": {
-      "place": "",
-      "environment": ""
-    },
-    "cinematography": {
-      "tone": "",
-      "style": ""
-    },
-    "subscenes": [
-      {
-        "subscene_id": "8-2a",
-        "description": "",
-        "emotion": "",
-        "camera_hint": "",
-        "props": [""],
-        "dialogue_excerpt": "",
-        "location": {
-          "place": "",
-          "environment": ""
-        },
-        "cinematography": {
-          "tone": "",
-          "style": ""
-        }
-      }
-    ]
-  }
-]
 
 Here is the script content to analyze:
   {{scriptContent}}
