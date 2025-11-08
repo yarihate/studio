@@ -1,50 +1,66 @@
 'use server';
 /**
- * @fileOverview A flow to translate text from Russian to English.
+ * @fileOverview A flow to translate text from Russian to English using a local Ollama instance.
  *
  * - translateToEnglish - A function that handles the translation.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+// We will use the same Ollama configuration as the scene extraction flow.
+const OLLAMA_URL = 'http://localhost:11434/api/generate';
+const OLLAMA_MODEL = 'hf.co/unsloth/Qwen3-14B-GGUF:Q5_K_M';
 
-// Define the input schema for the flow
-const TranslateInputSchema = z.string().describe('Text in Russian to be translated to English.');
-export type TranslateInput = z.infer<typeof TranslateInputSchema>;
+const PROMPT_TEMPLATE = `You are an expert translator. Your task is to translate the following Russian text to English.
+Output only the translated text, without any additional comments, explanations, or markdown.
 
-// Define the output schema for the flow
-const TranslateOutputSchema = z.string().describe('The translated text in English.');
-export type TranslateOutput = z.infer<typeof TranslateOutputSchema>;
+Russian text:
+"{{textToTranslate}}"
 
-// Define the prompt for the AI model
-const translatePrompt = ai.definePrompt({
-  name: 'translateToEnglishPrompt',
-  input: { schema: TranslateInputSchema },
-  output: { schema: TranslateOutputSchema },
-  prompt: `Translate the following Russian text to English. Output only the translated text, without any additional comments or explanations.
-
-Russian text: {{{input}}}
-`,
-});
-
-// Define the Genkit flow
-const translateToEnglishFlow = ai.defineFlow(
-  {
-    name: 'translateToEnglishFlow',
-    inputSchema: TranslateInputSchema,
-    outputSchema: TranslateOutputSchema,
-  },
-  async (input) => {
-    const { output } = await translatePrompt(input);
-    return output ?? '';
-  }
-);
+English translation:
+`;
 
 /**
- * Translates text from Russian to English using an AI model.
+ * Translates text from Russian to English using a local Ollama model.
  * @param text The Russian text to translate.
  * @returns The translated English text.
  */
-export async function translateToEnglish(text: TranslateInput): Promise<TranslateOutput> {
-  return await translateToEnglishFlow(text);
+export async function translateToEnglish(text: string): Promise<string> {
+  const prompt = PROMPT_TEMPLATE.replace('{{textToTranslate}}', text);
+
+  try {
+    const requestBody = {
+      model: OLLAMA_MODEL,
+      prompt: prompt,
+      stream: false, // For short translations, streaming is not necessary
+    };
+
+    const response = await fetch(OLLAMA_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+      // A short timeout for a translation task
+      signal: AbortSignal.timeout(60000), // 60-second timeout
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('Ollama translation request failed:', errorBody);
+      throw new Error(
+        `Ollama API request failed with status ${response.status}: ${errorBody}`
+      );
+    }
+
+    const jsonResponse = await response.json();
+    
+    // The actual text is in the 'response' field of the JSON object.
+    const translatedText = jsonResponse.response?.trim() || '';
+
+    return translatedText;
+
+  } catch (error) {
+    console.error('Error calling Ollama for translation:', error);
+    // Return original text as a fallback
+    return text;
+  }
 }
