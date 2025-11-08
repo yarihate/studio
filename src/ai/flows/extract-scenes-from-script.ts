@@ -184,23 +184,22 @@ Here is the script content to analyze:
 
 export async function extractScenesFromScript(input: ExtractScenesFromScriptInput): Promise<Scene[]> {
     const prompt = PROMPT_TEMPLATE.replace('{{scriptContent}}', input.scriptContent);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1800000); // 30 minutes timeout
 
     try {
         const requestBody = {
             model: OLLAMA_MODEL,
             prompt: prompt,
             format: 'json',
-            stream: false, // Wait for the full response
+            stream: true, // Use streaming to avoid timeouts
             options: {
               num_ctx: 40960,
               temperature: 0.1,
-              top_p: 0.9
+              top_p: 0.9,
+              context_length: 16000
             }
         };
 
-        console.log(`Sending request to Ollama at ${OLLAMA_URL} with model ${OLLAMA_MODEL}`);
+        console.log(`Sending streaming request to Ollama at ${OLLAMA_URL} with model ${OLLAMA_MODEL}`);
         console.log('Ollama Request Body:', JSON.stringify(requestBody, null, 2));
 
         const response = await fetch(OLLAMA_URL, {
@@ -209,22 +208,58 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(requestBody),
-            signal: controller.signal,
         });
-
-        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorBody = await response.text();
             console.error('Ollama request failed:', errorBody);
             throw new Error(`Ollama API request failed with status ${response.status}: ${errorBody}`);
         }
-
-        const jsonResponse = await response.json();
         
-        console.log('Received from Ollama (raw response):', jsonResponse.response);
+        if (!response.body) {
+            throw new Error('Ollama response body is empty.');
+        }
 
-        const jsonContent = JSON.parse(jsonResponse.response);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedJson = '';
+        
+        console.log('Starting to read stream from Ollama...');
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                console.log('Stream finished.');
+                break;
+            }
+
+            const chunk = decoder.decode(value, { stream: true });
+            
+            // Ollama streaming with format: 'json' sends multiple JSON objects, one per line.
+            // We need to handle cases where a single read contains multiple or partial lines.
+            const jsonObjects = chunk.split('\n').filter(s => s.trim() !== '');
+
+            for (const jsonObjStr of jsonObjects) {
+                try {
+                    const parsedChunk = JSON.parse(jsonObjStr);
+                    if (parsedChunk.response) {
+                        accumulatedJson += parsedChunk.response;
+                    }
+                    if (parsedChunk.done) {
+                        // Sometimes the last chunk with done=true is empty.
+                        // We rely on the stream ending instead.
+                        console.log('Ollama signaled completion in chunk.');
+                    }
+                } catch (error) {
+                    console.error('Failed to parse a chunk from Ollama stream:', jsonObjStr, error);
+                    // Continue accumulating, as it might be a partial JSON object
+                }
+            }
+        }
+        
+        console.log('Received from Ollama (full accumulated response):', accumulatedJson);
+        
+        const jsonContent = JSON.parse(accumulatedJson);
         
         if (!Array.isArray(jsonContent)) {
             throw new Error('Ollama did not return a valid JSON array.');
@@ -233,7 +268,6 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
         return jsonContent as Scene[];
 
     } catch (error) {
-        clearTimeout(timeoutId); // Also clear timeout on error
         console.error('Error calling or parsing Ollama API response:', error);
         throw error;
     }
