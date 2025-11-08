@@ -189,8 +189,7 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
         const requestBody = {
             model: OLLAMA_MODEL,
             prompt: prompt,
-            format: 'json',
-            stream: true, // Use streaming to avoid timeouts
+            stream: true,
             options: {
               num_ctx: 40960,
               temperature: 0.1,
@@ -208,6 +207,7 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(1800000), // 30-minute timeout
         });
 
         if (!response.ok) {
@@ -234,9 +234,6 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
             }
 
             const chunk = decoder.decode(value, { stream: true });
-            
-            // Ollama streaming with format: 'json' sends multiple JSON objects, one per line.
-            // We need to handle cases where a single read contains multiple or partial lines.
             const jsonObjects = chunk.split('\n').filter(s => s.trim() !== '');
 
             for (const jsonObjStr of jsonObjects) {
@@ -246,20 +243,27 @@ export async function extractScenesFromScript(input: ExtractScenesFromScriptInpu
                         accumulatedJson += parsedChunk.response;
                     }
                     if (parsedChunk.done) {
-                        // Sometimes the last chunk with done=true is empty.
-                        // We rely on the stream ending instead.
                         console.log('Ollama signaled completion in chunk.');
                     }
                 } catch (error) {
                     console.error('Failed to parse a chunk from Ollama stream:', jsonObjStr, error);
-                    // Continue accumulating, as it might be a partial JSON object
                 }
             }
         }
         
         console.log('Received from Ollama (full accumulated response):', accumulatedJson);
         
-        const jsonContent = JSON.parse(accumulatedJson);
+        // Find the start and end of the JSON array
+        const startIndex = accumulatedJson.indexOf('[');
+        const endIndex = accumulatedJson.lastIndexOf(']');
+
+        if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+            throw new Error('Could not find a valid JSON array in the Ollama response.');
+        }
+
+        const jsonString = accumulatedJson.substring(startIndex, endIndex + 1);
+        
+        const jsonContent = JSON.parse(jsonString);
         
         if (!Array.isArray(jsonContent)) {
             throw new Error('Ollama did not return a valid JSON array.');
