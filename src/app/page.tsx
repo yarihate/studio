@@ -10,6 +10,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Animation, DetailedImage, Scene, Sketch } from '@/types/script-vision';
+import { generateStoryboardSketches } from '@/ai/flows/generate-storyboard-sketches';
 
 export default function HomePage() {
   const [isExtractingScenes, setIsExtractingScenes] = useState(false);
@@ -70,23 +71,31 @@ export default function HomePage() {
     }
   };
 
-  const handleGenerateSketchForScene = async (scene: Scene) => {
+ const handleGenerateSketchForScene = async (scene: Scene) => {
     setIsGeneratingSketches(prev => [...prev, scene.scene_id]);
     setSelectedSketchUrls([]);
     
-    // Using mock data for sketch generation
-    const mockImageUrls = scene.subscenes.map((subscene, index) => 
-        `https://picsum.photos/seed/${subscene.subscene_id}/${index}/480/480`
-    );
+    try {
+        const shotDescriptions = scene.subscenes.map(s => s.description);
+        const { sketchDataUris } = await generateStoryboardSketches({ shotDescriptions });
 
-    const newSketch = { sceneId: scene.scene_id, imageUrls: mockImageUrls };
-    setSketches(prev => {
-        const otherSketches = prev.filter(s => s.sceneId !== scene.scene_id);
-        return [...otherSketches, newSketch];
-    });
+        const newSketch: Sketch = { sceneId: scene.scene_id, imageUrls: sketchDataUris };
+        setSketches(prev => {
+            const otherSketches = prev.filter(s => s.sceneId !== scene.scene_id);
+            return [...otherSketches, newSketch];
+        });
 
-    setIsGeneratingSketches(prev => prev.filter(id => id !== scene.scene_id));
-  };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        toast({
+            variant: 'destructive',
+            title: 'Error Generating Sketches',
+            description: errorMessage,
+        });
+    } finally {
+        setIsGeneratingSketches(prev => prev.filter(id => id !== scene.scene_id));
+    }
+};
 
 
   const handleEnhanceSketch = (sceneId: string) => {
