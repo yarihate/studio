@@ -2,6 +2,12 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    serverActions: {
+      // Set the timeout for Server Actions to 30 minutes (1800 seconds)
+      executionTimeout: 1800,
+    },
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

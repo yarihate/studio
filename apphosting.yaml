@@ -5,3 +5,5 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+  # Set the timeout for request handling to 30 minutes (1800 seconds).
+  timeoutSeconds: 1800
