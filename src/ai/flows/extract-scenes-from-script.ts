@@ -17,23 +17,23 @@ const OLLAMA_URL = 'http://localhost:11434/api/generate';
 const OLLAMA_MODEL = 'gemma3:12b';
 
 const PROMPT_TEMPLATE = `You are a film scene extraction and structuring AI.
-Your job is to read a Russian film script and segment the WHOLE SCRIPT into scenes and subscenes,
-then output a valid JSON array strictly following the schema below.
+Your task is to read a Russian film script and segment the WHOLE SCRIPT into scenes and subscenes,
+then output a valid JSON array that strictly follows the schema below.
 
 No commentary, markdown, or text outside the JSON is allowed.
-Always output a single valid JSON array, even if the script contains only one scene.
+Always return a single valid JSON array, even if the script contains only one scene.
 
-Main Goals
+🧩 Main Goals
 
-Identify all scene headers (ИНТ., НАТ., ДЕНЬ, НОЧЬ, etc.).
+Identify all scene headers (ИНТ., НАТ., ДЕНЬ, НОЧЬ, ВЕЧЕР, УТРО, etc.).
 
-Split each scene into subscenes (эмоциональные, событийные или визуальные блоки).
+Split each scene into subscenes (only visual, emotional, or event-based blocks).
 
-Fill every field in the schema strictly based on script content (no invention).
+Fill every field strictly based on the content of the script — no invention or improvisation.
 
-Always produce syntactically valid JSON that can be parsed via JSON.parse().
+Always return syntactically valid JSON that can be parsed using JSON.parse().
 
-Required JSON Schema
+✅ Required JSON Schema
 
 Each scene must follow this structure:
 
@@ -69,56 +69,95 @@ If there are multiple scenes, return them as a single JSON array:
   { ... }
 ]
 
-Rules & Validation Checks
+⚙️ Rules & Validation Checks
 1. Formatting
 
 Output only raw JSON, no markdown, code fences, or explanations.
 
-The result must be directly parseable by JSON.parse() without errors.
+JSON must be directly parsable by JSON.parse() with no errors.
 
 2. Field completeness
 
-All keys from the schema must be present in every object.
+All keys must be present.
 
-If information is missing → use "" for strings, [] for arrays, or {} for nested objects.
+Empty values must use "", [], or {} as appropriate.
 
-Never remove or rename keys.
+Do not remove or rename any keys.
 
-3. Structure
+🎞 Scene & Subscene Segmentation Rules
+1. Scene Detection
+
+A new scene begins only when a new line explicitly indicates a scene header:
+
+ИНТ. or НАТ.
+
+and/or a change of time indicator (ДЕНЬ, НОЧЬ, ВЕЧЕР, УТРО).
+
+Example:
+
+"8-1" → ИНТ. КАБИНЕТ ПСИХОЛОГА. ДЕНЬ
+
+"8-2" → НАТ. ДВОР ШКОЛЫ. ВЕЧЕР
+
+When a new header appears, start a new JSON scene object, not a subscene.
+
+2. Subscene Detection
+
+Create a subscene only when:
+
+There is a visible visual or emotional change, such as an outburst, physical action, shift in focus, or pause.
+
+The camera or focus of attention clearly changes.
+
+A subscene should describe one complete visual or emotional moment, not individual lines.
+
+3. Subscene Minimization Rule
+
+Merge adjacent dialogue or micro-actions into a single subscene
+if they occur in the same emotional state or physical space.
+
+Do not fragment long dialogues — they belong to one subscene unless there is a visual change.
+
+Each subscene should represent roughly 5–20 seconds of screen time.
+
+4. Dialogue Exclusion Rule
+
+Pure dialogue segments are not separate subscenes.
+
+Dialogue can appear inside description only if it accompanies an action or emotional shift.
+
+Multiple consecutive dialogue lines = one subscene, if no new visual change occurs.
+
+🧠 Structure
 
 scene_id = scene number (e.g., "8-1").
 
 subscene_id = scene number + lowercase letter (e.g., "8-1a", "8-1b").
 
-Each subscene = one distinct visual or emotional beat.
+Each subscene represents one distinct visual or emotional beat.
 
-Keep subscenes in chronological order.
+Keep all subscenes in chronological order.
 
-Important Rule — Dialogue Handling:
-Dialogues alone (without any physical or emotional change, camera shift, or visual beat)
-must not be extracted as separate subscenes.
-Dialogues can be included inside a subscene’s description only if they illustrate a visible action, emotion, or dynamic shift.
-
-4. Language
+🌍 Language
 
 Use Russian for all text fields.
 
-Preserve original character names and dialogue fragments inside descriptions.
+Preserve original character names, lines, and dialogue fragments.
 
 Do not translate or rephrase any Russian content.
 
-5. Content accuracy
+🎥 Content Accuracy
 
-Extract only explicit information from the script.
+Extract only explicit details: actions, settings, emotions, props.
 
-Do not invent visuals, tone, or props not mentioned.
+Do not invent or add new information.
 
-Keep the descriptions concise but informative.
+Keep descriptions short but visually informative.
 
-6. Sensitive content
+⚠️ Sensitive Content
 
 If a scene or subscene contains sensitive or restricted material (e.g., violence, sexual content):
-Do not stop processing. Replace the content with:
+⚠️ Do not stop processing. Replace the content with:
 
 {
   "subscene_id": "8-5a",
@@ -130,16 +169,17 @@ Do not stop processing. Replace the content with:
 
 Then continue generating the rest of the JSON normally.
 
-7. Strict JSON Array Enforcement
+🧱 Strict JSON Array Enforcement
 
-The final output must always be a JSON array — even if there is only one scene.
+Always return output as a JSON array.
+Even if there is only one scene, it must be enclosed within an array:
 
-Correct:
+✅ Correct:
 
 [ { ... } ]
 
 
-Incorrect:
+❌ Incorrect:
 
 { ... }
 
@@ -150,10 +190,10 @@ Incorrect:
     "scene_title": "ИНТ. КАБИНЕТ ПСИХОЛОГА. ДЕНЬ",
     "time_period": "2016",
     "characters": ["Арина (16)", "Психолог (40)"],
-    "general_context": "Диалог между Ариной и психологом. Отстраненность переходит в эмоциональный срыв и исповедь.",
+    "general_context": "Диалог между Ариной и психологом. Постепенно из безразличия вырастает эмоциональный срыв и исповедь.",
     "location": {
       "place": "Кабинет психолога в частной клинике, дневное освещение из окна.",
-      "environment": "Комната с мягким диваном, столом и приглушённым светом."
+      "environment": "Комната с мягким диваном, креслом и спокойной атмосферой."
     },
     "cinematography": {
       "tone": "спокойный, напряжённый",
@@ -162,25 +202,37 @@ Incorrect:
     "subscenes": [
       {
         "subscene_id": "8-1a",
-        "description": "Арина сидит с телефоном, скучает, отвечает на вопросы психолога.",
+        "description": "Арина сидит с телефоном, скучает, отвечает односложно. Психолог пытается установить контакт.",
         "camera_hint": "средний план, дневной свет из окна",
         "props": ["телефон", "диван"]
       },
       {
         "subscene_id": "8-1b",
-        "description": "Телефон глючит, Арина в панике кричит в громкую связь. Психолог сохраняет спокойствие.",
-        "camera_hint": "крупный план лица, статичная камера",
+        "description": "Телефон начинает звонить. Арина не может сбросить вызов, злится и срывается на крик. Психолог сохраняет спокойствие.",
+        "camera_hint": "крупный план лица и телефона, статичная камера",
         "props": ["телефон"]
       },
       {
         "subscene_id": "8-1c",
-        "description": "После вспышки истерики Арина успокаивается, делится болью о прошлом и своём похитителе.",
-        "camera_hint": "средний план, мягкое освещение",
+        "description": "После вспышки Арина успокаивается и рассказывает о прошлом, о похитителе и своих снах. Психолог помогает ей принять случившееся.",
+        "camera_hint": "средний план, мягкое освещение, спокойный ритм",
         "props": []
       }
     ]
   }
 ]
+
+✅ LLM Output Guards
+
+Before returning the result, the model must internally check:
+
+The output is a JSON array, not a single object.
+
+All scene_id and subscene_id values are unique.
+
+No dialogue-only blocks are treated as subscenes.
+
+All required keys exist — none are missing or renamed.
 
 Here is the script content to analyze:
   {{scriptContent}}
