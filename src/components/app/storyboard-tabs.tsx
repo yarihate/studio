@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote } from 'lucide-react';
+import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin } from 'lucide-react';
 import type {
   Scene,
   Sketch,
@@ -116,6 +116,7 @@ export function StoryboardTabs({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <DetailItem label="Персонажи" value={scene.characters} icon={User} />
             <DetailItem label="Время" value={scene.time_period} icon={Clock} />
+            <DetailItem label="Локация" value={scene.location?.place} icon={MapPin} />
           </div>
           <div className="space-y-4">
             <h3 className="text-lg font-semibold font-headline">Под-сцены</h3>

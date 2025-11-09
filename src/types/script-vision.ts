@@ -13,6 +13,10 @@ export type Scene = {
   time_period: string;
   characters: string[];
   general_context: string;
+  location: {
+    place: string;
+    environment: string;
+  };
   subscenes: SubScene[];
 };
 
