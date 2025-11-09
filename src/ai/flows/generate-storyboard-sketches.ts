@@ -12,37 +12,164 @@ const COMFYUI_OUTPUT_URL = 'http://localhost:8000/view';
 
 // The ComfyUI workflow template provided by the user.
 const COMFYUI_WORKFLOW_TEMPLATE = {
-  "client_id": "ca00322480d246d7bc283868962bc856",
+  "client_id": "29b324cc02cd495d9ba30faa2fc20b0d",
   "prompt": {
-    "1": {
+    "4": {
       "inputs": {
-        "nag_scale": 11,
-        "nag_alpha": 0.25,
-        "nag_tau": 2.5,
-        "input_type": "default",
+        "ckpt_name": "sd_xl_base_1.0.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Load Checkpoint - BASE"
+      }
+    },
+    "5": {
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      },
+      "class_type": "EmptyLatentImage",
+      "_meta": {
+        "title": "Empty Latent Image"
+      }
+    },
+    "6": {
+      "inputs": {
+        "text": "sketch of young girl is sitting with her mobile phone answering the questions of the psychologist",
+        "clip": [
+          "4",
+          1
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "7": {
+      "inputs": {
+        "text": "text, watermark",
+        "clip": [
+          "4",
+          1
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "10": {
+      "inputs": {
+        "add_noise": "enable",
+        "noise_seed": 343092596614948,
+        "steps": 25,
+        "cfg": 8,
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "start_at_step": 0,
+        "end_at_step": 20,
+        "return_with_leftover_noise": "enable",
         "model": [
           "53",
           0
         ],
-        "conditioning": [
-          "11",
+        "positive": [
+          "6",
+          0
+        ],
+        "negative": [
+          "7",
+          0
+        ],
+        "latent_image": [
+          "5",
           0
         ]
       },
-      "class_type": "WanVideoNAG",
+      "class_type": "KSamplerAdvanced",
       "_meta": {
-        "title": "WanVideoNAG"
+        "title": "KSampler (Advanced) - BASE"
       }
     },
-    "2": {
+    "11": {
+      "inputs": {
+        "add_noise": "disable",
+        "noise_seed": 0,
+        "steps": 25,
+        "cfg": 8,
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "start_at_step": 20,
+        "end_at_step": 10000,
+        "return_with_leftover_noise": "disable",
+        "model": [
+          "12",
+          0
+        ],
+        "positive": [
+          "15",
+          0
+        ],
+        "negative": [
+          "16",
+          0
+        ],
+        "latent_image": [
+          "10",
+          0
+        ]
+      },
+      "class_type": "KSamplerAdvanced",
+      "_meta": {
+        "title": "KSampler (Advanced) - REFINER"
+      }
+    },
+    "12": {
+      "inputs": {
+        "ckpt_name": "sd_xl_refiner_1.0.safetensors"
+      },
+      "class_type": "CheckpointLoaderSimple",
+      "_meta": {
+        "title": "Load Checkpoint - REFINER"
+      }
+    },
+    "15": {
+      "inputs": {
+        "text": "sketch of young girl is sitting with her mobile phone answering the questions of the psychologist",
+        "clip": [
+          "12",
+          1
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "16": {
+      "inputs": {
+        "text": "text, watermark",
+        "clip": [
+          "12",
+          1
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    },
+    "17": {
       "inputs": {
         "samples": [
-          "13",
+          "11",
           0
         ],
         "vae": [
-          "14",
-          0
+          "12",
+          2
         ]
       },
       "class_type": "VAEDecode",
@@ -50,113 +177,11 @@ const COMFYUI_WORKFLOW_TEMPLATE = {
         "title": "VAE Decode"
       }
     },
-    "4": {
-      "inputs": {
-        "anything": [
-          "2",
-          0
-        ]
-      },
-      "class_type": "easy cleanGpuUsed",
-      "_meta": {
-        "title": "Clean VRAM Used"
-      }
-    },
-    "8": {
-      "inputs": {
-        "sage_attention": "disabled",
-        "model": [
-          "54",
-          0
-        ]
-      },
-      "class_type": "PathchSageAttentionKJ",
-      "_meta": {
-        "title": "Patch Sage Attention KJ"
-      }
-    },
-    "9": {
-      "inputs": {
-        "enable_fp16_accumulation": false,
-        "model": [
-          "8",
-          0
-        ]
-      },
-      "class_type": "ModelPatchTorchSettings",
-      "_meta": {
-        "title": "Model Patch Torch Settings"
-      }
-    },
-    "11": {
-      "inputs": {
-        "text": "poorly drawn, bad anatomy, bad hands, bad eyes, missing fingers, extra fingers, ugly, deformed, disfigured, blurry, grainy, out of focus, low resolution, amateur, poorly lit, oversaturated, undersaturated, watermark, signature, text, writing, noise, artifacts",
-        "clip": [
-          "53",
-          1
-        ]
-      },
-      "class_type": "CLIPTextEncode",
-      "_meta": {
-        "title": "CLIP Text Encode (Negative Prompt)"
-      }
-    },
-    "12": {
-      "inputs": {
-        "width": 720,
-        "height": 1280,
-        "length": 1,
-        "batch_size": 2
-      },
-      "class_type": "EmptyHunyuanLatentVideo",
-      "_meta": {
-        "title": "EmptyHunyuanLatentVideo"
-      }
-    },
-    "13": {
-      "inputs": {
-        "seed": 279204935445648,
-        "steps": 60,
-        "cfg": 1,
-        "sampler_name": "euler",
-        "scheduler": "beta",
-        "denoise": 1,
-        "model": [
-          "20",
-          0
-        ],
-        "positive": [
-          "23",
-          0
-        ],
-        "negative": [
-          "11",
-          0
-        ],
-        "latent_image": [
-          "12",
-          0
-        ]
-      },
-      "class_type": "KSampler",
-      "_meta": {
-        "title": "KSampler"
-      }
-    },
-    "14": {
-      "inputs": {
-        "vae_name": "wan_2.1_vae.safetensors"
-      },
-      "class_type": "VAELoader",
-      "_meta": {
-        "title": "Load VAE"
-      }
-    },
-    "15": {
+    "19": {
       "inputs": {
         "filename_prefix": "ComfyUI",
         "images": [
-          "29",
+          "17",
           0
         ]
       },
@@ -165,148 +190,18 @@ const COMFYUI_WORKFLOW_TEMPLATE = {
         "title": "Save Image"
       }
     },
-    "17": {
+    "53": {
       "inputs": {
-        "unet_name": "Wan2.2-T2V-A14B-LowNoise-Q6_K.gguf"
-      },
-      "class_type": "UnetLoaderGGUF",
-      "_meta": {
-        "title": "Unet Loader (GGUF)"
-      }
-    },
-    "18": {
-      "inputs": {
-        "clip_name": "umt5xxl-encoder-q8_0.gguf",
-        "type": "wan"
-      },
-      "class_type": "CLIPLoaderGGUF",
-      "_meta": {
-        "title": "CLIPLoader (GGUF)"
-      }
-    },
-    "20": {
-      "inputs": {
-        "shift": 1.0000000000000002,
+        "lora_name": "Minute_Sketch_v2_R-16.safetensors",
+        "strength_model": 1,
         "model": [
-          "1",
-          0
-        ]
-      },
-      "class_type": "ModelSamplingSD3",
-      "_meta": {
-        "title": "Shift"
-      }
-    },
-    "23": {
-      "inputs": {
-        "text": "girl sitting on the sofa",
-        "clip": [
-          "53",
-          1
-        ]
-      },
-      "class_type": "CLIPTextEncode",
-      "_meta": {
-        "title": "CLIP Text Encode (Positive Prompt)"
-      }
-    },
-    "29": {
-      "inputs": {
-        "anything": [
           "4",
           0
         ]
       },
-      "class_type": "easy clearCacheAll",
+      "class_type": "LoraLoaderModelOnly",
       "_meta": {
-        "title": "Clear Cache All"
-      }
-    },
-    "53": {
-      "inputs": {
-        "PowerLoraLoaderHeaderWidget": {
-          "type": "PowerLoraLoaderHeaderWidget"
-        },
-        "lora_1": {
-          "on": true,
-          "lora": "Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors",
-          "strength": 0.8
-        },
-        "lora_2": {
-          "on": false,
-          "lora": "AlvaLarsson2211_low_5.safetensors",
-          "strength": 1
-        },
-        "lora_3": {
-          "on": true,
-          "lora": "Instagirlv2.5-LOW.safetensors",
-          "strength": 0.8
-        },
-        "lora_4": {
-          "on": false,
-          "lora": "Lenovo.safetensors",
-          "strength": 1
-        },
-        "lora_5": {
-          "on": false,
-          "lora": "Ol1v14_000001000_low_noise.safetensors",
-          "strength": 1
-        },
-        "lora_6": {
-          "on": true,
-          "lora": "Ol1v14_low_noise.safetensors",
-          "strength": 1
-        },
-        "➕ Add Lora": "",
-        "model": [
-          "9",
-          0
-        ],
-        "clip": [
-          "55",
-          0
-        ]
-      },
-      "class_type": "Power Lora Loader (rgthree)",
-      "_meta": {
-        "title": "Power Lora Loader (rgthree)"
-      }
-    },
-    "54": {
-      "inputs": {
-        "unet_name": "Wan2.2\\wan2.2_t2v_low_noise_14B_fp16.safetensors",
-        "weight_dtype": "default"
-      },
-      "class_type": "UNETLoader",
-      "_meta": {
-        "title": "Load Diffusion Model"
-      }
-    },
-    "55": {
-      "inputs": {
-        "clip_name": "umt5_xxl_fp16.safetensors",
-        "type": "wan",
-        "device": "default"
-      },
-      "class_type": "CLIPLoader",
-      "_meta": {
-        "title": "Load CLIP"
-      }
-    }
-  },
-  "extra_data": {
-    "extra_pnginfo": {
-      "workflow": {
-        "id": "fdb47d40-0ef5-4eaf-bc33-7c21fcf83172",
-        "revision": 0,
-        "last_node_id": 55,
-        "last_link_id": 63,
-        "nodes": [],
-        "links": [],
-        "groups": [],
-        "config": {},
-        "extra": {},
-        "version": 0.4
+        "title": "LoraLoaderModelOnly"
       }
     }
   }
@@ -323,15 +218,17 @@ export interface GenerateStoryboardSketchesOutput {
 async function getImages(promptText: string): Promise<string> {
     const requestBody = JSON.parse(JSON.stringify(COMFYUI_WORKFLOW_TEMPLATE));
 
-    // Update the positive prompt in the workflow
-    // Node "23" is the "CLIP Text Encode (Positive Prompt)"
-    if (requestBody.prompt && requestBody.prompt['23'] && requestBody.prompt['23'].inputs) {
-        requestBody.prompt['23'].inputs.text = promptText;
+    // Update the positive prompt in the workflow (both for base and refiner)
+    if (requestBody.prompt && requestBody.prompt['6'] && requestBody.prompt['6'].inputs) {
+        requestBody.prompt['6'].inputs.text = `sketch of ${promptText}`;
+    }
+    if (requestBody.prompt && requestBody.prompt['15'] && requestBody.prompt['15'].inputs) {
+        requestBody.prompt['15'].inputs.text = `sketch of ${promptText}`;
     }
 
-    // Set a random seed for variety
-    if (requestBody.prompt && requestBody.prompt['13'] && requestBody.prompt['13'].inputs) {
-      requestBody.prompt['13'].inputs.seed = Math.floor(Math.random() * 1e15);
+    // Set a random seed for variety in the KSamplerAdvanced node
+    if (requestBody.prompt && requestBody.prompt['10'] && requestBody.prompt['10'].inputs) {
+      requestBody.prompt['10'].inputs.noise_seed = Math.floor(Math.random() * 1e15);
     }
     
     const response = await fetch(COMFYUI_URL, {
@@ -372,8 +269,8 @@ async function getImages(promptText: string): Promise<string> {
                 const historyJson = await historyResponse.json();
                 if (historyJson[promptId] && historyJson[promptId].outputs) {
                     const outputs = historyJson[promptId].outputs;
-                    // The output node for images is "15" (SaveImage) in the new workflow.
-                    const saveImageNodeOutput = outputs['15'];
+                    // The output node for images is "19" (SaveImage) in the new workflow.
+                    const saveImageNodeOutput = outputs['19'];
                     
                     if (saveImageNodeOutput && saveImageNodeOutput.images && saveImageNodeOutput.images.length > 0) {
                         const imageData = saveImageNodeOutput.images[0];
@@ -422,7 +319,7 @@ export async function generateStoryboardSketches(
   const translatedDescriptions = await Promise.all(translatedPromises);
 
   const sketchPromises = translatedDescriptions.map((description) => {
-      // The new workflow doesn't need a "sketch of" prefix.
+      // The workflow now expects a "sketch of" prefix, which I am adding.
       return getImages(description);
   });
 
@@ -432,5 +329,3 @@ export async function generateStoryboardSketches(
 
 // We need the translate function here to make the prompts English for the model
 import { translateToEnglish } from './translate-to-english';
-
-    
