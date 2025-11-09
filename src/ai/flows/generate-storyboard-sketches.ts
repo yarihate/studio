@@ -7,8 +7,8 @@
  * - GenerateStoryboardSketchesOutput - The return type for the generateStoryboardSketches function.
  */
 
-const COMFYUI_URL = 'http://localhost:8000/api/prompt';
-const COMFYUI_OUTPUT_URL = 'http://localhost:8000/api/view';
+const COMFYUI_URL = 'http://localhost:8000/prompt';
+const COMFYUI_OUTPUT_URL = 'http://localhost:8000/view';
 
 // The ComfyUI workflow template provided by the user.
 const COMFYUI_WORKFLOW_TEMPLATE = {
@@ -27,16 +27,18 @@ export interface GenerateStoryboardSketchesOutput {
 async function getImages(prompt: string): Promise<string> {
     const workflow = JSON.parse(JSON.stringify(COMFYUI_WORKFLOW_TEMPLATE));
 
-    // Find the positive prompt node (id: 51) and update its value
+    // Find the positive prompt nodes and update their values
+    // Node 51: Main positive prompt input
     const positivePromptNode = workflow.nodes.find((node: any) => node.id === 51);
     if (positivePromptNode) {
         positivePromptNode.widgets_values = [prompt];
     }
-     // Also update nodes 6 and 15 which seem to hold prompt values in the template
+     // Node 6: First CLIPTextEncode using the positive prompt
     const node6 = workflow.nodes.find((node: any) => node.id === 6);
     if (node6) {
         node6.widgets_values = [prompt];
     }
+    // Node 15: Second CLIPTextEncode using the positive prompt
     const node15 = workflow.nodes.find((node: any) => node.id === 15);
     if (node15) {
         node15.widgets_values = [prompt];
@@ -59,31 +61,57 @@ async function getImages(prompt: string): Promise<string> {
     const jsonResponse = await response.json();
     const promptId = jsonResponse.prompt_id;
 
-    // Await the image generation
+    // Await the image generation by polling the history
     return new Promise((resolve, reject) => {
         const checkStatus = async () => {
-            const historyResponse = await fetch(`http://localhost:8000/history/${promptId}`);
-            if (!historyResponse.ok) {
-                reject(new Error(`Failed to get history for prompt ${promptId}`));
-                return;
-            }
+            try {
+                const historyResponse = await fetch(`http://localhost:8000/history/${promptId}`);
+                if (!historyResponse.ok) {
+                    // If history is not yet available, wait and retry
+                    if (historyResponse.status === 404) {
+                        setTimeout(checkStatus, 1000);
+                        return;
+                    }
+                    reject(new Error(`Failed to get history for prompt ${promptId}. Status: ${historyResponse.status}`));
+                    return;
+                }
 
-            const historyJson = await historyResponse.json();
-            if (historyJson[promptId] && historyJson[promptId].outputs) {
-                const outputs = historyJson[promptId].outputs;
-                const saveImageNode = Object.values(outputs).find((o: any) => o.images);
-                
-                if (saveImageNode) {
-                    const imageData = (saveImageNode as any).images[0];
-                    const imageUrl = `${COMFYUI_OUTPUT_URL}?filename=${imageData.filename}&subfolder=${imageData.subfolder}&type=${imageData.type}`;
-                    resolve(imageUrl);
+                const historyJson = await historyResponse.json();
+                if (historyJson[promptId] && historyJson[promptId].outputs) {
+                    const outputs = historyJson[promptId].outputs;
+                    // Find the output from the "SaveImage" node (ID 19 in the workflow)
+                    const saveImageNodeOutput = outputs['19'];
+                    
+                    if (saveImageNodeOutput && saveImageNodeOutput.images) {
+                        const imageData = saveImageNodeOutput.images[0];
+                        // Construct the full URL to view the image
+                        const imageUrl = `${COMFYUI_OUTPUT_URL}?filename=${imageData.filename}&subfolder=${imageData.subfolder}&type=${imageData.type}`;
+                        
+                        // To return a data URI, we need to fetch the image content
+                        const imageResponse = await fetch(imageUrl);
+                        if (!imageResponse.ok) {
+                           reject(new Error(`Failed to fetch generated image from ${imageUrl}`));
+                           return;
+                        }
+                        const imageBuffer = await imageResponse.arrayBuffer();
+                        const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+                        const mimeType = imageResponse.headers.get('content-type') || 'image/png';
+                        const dataUri = `data:${mimeType};base64,${imageBase64}`;
+
+                        resolve(dataUri);
+
+                    } else {
+                        // still processing, check again
+                        setTimeout(checkStatus, 1000);
+                    }
                 } else {
-                    // still processing
+                     // still processing, check again
                     setTimeout(checkStatus, 1000);
                 }
-            } else {
-                 // still processing
-                setTimeout(checkStatus, 1000);
+            } catch (error) {
+                console.error("Error while checking ComfyUI history:", error);
+                // Keep retrying on network errors etc.
+                setTimeout(checkStatus, 2000);
             }
         };
         checkStatus();
