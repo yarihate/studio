@@ -40,7 +40,7 @@ export async function translateToEnglish(text: string): Promise<string> {
       },
       body: JSON.stringify(requestBody),
       // A short timeout for a translation task
-      signal: AbortSignal.timeout(60000), // 60-second timeout
+      signal: AbortSignal.timeout(180000),
     });
 
     if (!response.ok) {
