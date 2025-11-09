@@ -31,6 +31,9 @@ export async function translateToEnglish(text: string): Promise<string> {
       model: OLLAMA_MODEL,
       prompt: prompt,
       stream: false, // For short translations, streaming is not necessary
+      options: {
+        no_think: true
+      }
     };
 
     const response = await fetch(OLLAMA_URL, {
