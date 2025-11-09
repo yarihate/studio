@@ -52,6 +52,7 @@ export async function translateToEnglish(text: string): Promise<string> {
     }
 
     const jsonResponse = await response.json();
+    console.log('Ollama translation response:', JSON.stringify(jsonResponse, null, 2));
     
     // The actual text is in the 'response' field of the JSON object.
     const translatedText = jsonResponse.response?.trim() || '';
