@@ -7,8 +7,8 @@
  * - GenerateStoryboardSketchesOutput - The return type for the generateStoryboardSketches function.
  */
 
-const COMFYUI_URL = 'http://localhost:8000/prompt';
-const COMFYUI_OUTPUT_URL = 'http://localhost:8000/view';
+const COMFYUI_URL = 'http://localhost:8000/api/prompt';
+const COMFYUI_OUTPUT_URL = 'http://localhost:8000/api/view';
 
 // The ComfyUI workflow template provided by the user.
 const COMFYUI_WORKFLOW_TEMPLATE = {
