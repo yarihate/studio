@@ -206,8 +206,14 @@ const COMFYUI_WORKFLOW_TEMPLATE = {
     }
   }
 };
+export interface ShotDetail {
+  description: string;
+  location: string;
+  props: string[];
+}
+
 export interface GenerateStoryboardSketchesInput {
-  shotDescriptions: string[];
+  shotDetails: ShotDetail[];
 }
 
 export interface GenerateStoryboardSketchesOutput {
@@ -312,10 +318,17 @@ async function getImages(promptText: string): Promise<string> {
 export async function generateStoryboardSketches(
   input: GenerateStoryboardSketchesInput
 ): Promise<GenerateStoryboardSketchesOutput> {
-  console.log('Generating storyboard sketches for shots via ComfyUI:', input.shotDescriptions);
+  console.log('Generating storyboard sketches for shots via ComfyUI:', input.shotDetails);
   
-  // Translate all descriptions to English first, as the model likely performs better.
-  const translatedPromises = input.shotDescriptions.map((desc) => translateToEnglish(desc));
+  const constructedPrompts = input.shotDetails.map(detail => {
+    let prompt = `${detail.description}, in ${detail.location}`;
+    if (detail.props.length > 0) {
+      prompt += `, with props: ${detail.props.join(', ')}`;
+    }
+    return prompt;
+  });
+
+  const translatedPromises = constructedPrompts.map((desc) => translateToEnglish(desc));
   const translatedDescriptions = await Promise.all(translatedPromises);
 
   const sketchPromises = translatedDescriptions.map((description) => {

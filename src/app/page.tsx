@@ -76,8 +76,13 @@ export default function HomePage() {
     setSelectedSketchUrls([]);
     
     try {
-        const shotDescriptions = scene.subscenes.map(s => s.description);
-        const { sketchDataUris } = await generateStoryboardSketches({ shotDescriptions });
+        const shotDetails = scene.subscenes.map(s => ({
+          description: s.description,
+          location: scene.location.place,
+          props: s.props,
+        }));
+        
+        const { sketchDataUris } = await generateStoryboardSketches({ shotDetails });
 
         const newSketch: Sketch = { sceneId: scene.scene_id, imageUrls: sketchDataUris };
         setSketches(prev => {
