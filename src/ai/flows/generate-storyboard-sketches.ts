@@ -237,6 +237,9 @@ async function getImages(promptText: string): Promise<string> {
       requestBody.prompt['10'].inputs.noise_seed = Math.floor(Math.random() * 1e15);
     }
     
+    // Log the final request body before sending
+    console.log('Sending to ComfyUI:', JSON.stringify(requestBody, null, 2));
+
     const response = await fetch(COMFYUI_URL, {
         method: 'POST',
         headers: {
