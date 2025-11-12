@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit } from 'lucide-react';
+import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw } from 'lucide-react';
 import type {
   Scene,
   Sketch,
@@ -44,7 +44,9 @@ type StoryboardTabsProps = {
   selectedForAnimation: number[];
   onAnimate: () => void;
   isLoading: boolean;
+  isRegenerating: string | null;
   onGenerateSketch: () => void;
+  onRegenerate: (sceneId: string, imageIndex: number, newPrompt: string) => void;
   selectedSketchUrls: string[];
   onSelectSketch: (imageUrl: string) => void;
   onDownloadSelectedSketches: () => void;
@@ -82,7 +84,9 @@ export function StoryboardTabs({
   selectedForAnimation,
   onAnimate,
   isLoading,
+  isRegenerating,
   onGenerateSketch,
+  onRegenerate,
   selectedSketchUrls,
   onSelectSketch,
   onDownloadSelectedSketches,
@@ -105,13 +109,20 @@ export function StoryboardTabs({
   };
 
   const [activeTab, setActiveTab] = React.useState('sketches');
-  const [editingPrompt, setEditingPrompt] = React.useState<string | null>(null);
+  const [editingState, setEditingState] = React.useState<{imageUrl: string; prompt: string} | null>(null);
 
-  const toggleEdit = (imageUrl: string) => {
-    if (editingPrompt === imageUrl) {
-      setEditingPrompt(null);
+  const toggleEdit = (imageUrl: string, currentPrompt: string) => {
+    if (editingState?.imageUrl === imageUrl) {
+      setEditingState(null); // Close if already open
     } else {
-      setEditingPrompt(imageUrl);
+      setEditingState({ imageUrl, prompt: currentPrompt }); // Open for editing
+    }
+  };
+  
+  const handleRegenerateClick = (imageIndex: number) => {
+    if (editingState && scene) {
+      onRegenerate(scene.scene_id, imageIndex, editingState.prompt);
+      setEditingState(null); // Close editor on regenerate
     }
   };
 
@@ -180,8 +191,10 @@ export function StoryboardTabs({
           ) : sketch && sketch.images.length > 0 ? (
              <Carousel className="w-full">
                 <CarouselContent>
-                    {sketch.images.map((image, index) => (
-                        <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                    {sketch.images.map((image, index) => {
+                        const isCurrentlyRegenerating = isRegenerating === image.imageUrl;
+                        return (
+                        <CarouselItem key={image.imageUrl + index} className="md:basis-1/2 lg:basis-1/3">
                             <div className="p-1">
                                 <Card className="overflow-hidden">
                                     <CardHeader className="p-2 text-center bg-muted">
@@ -189,12 +202,18 @@ export function StoryboardTabs({
                                     </CardHeader>
                                     <CardContent className="p-0">
                                         <div className="relative group aspect-square">
+                                            {isCurrentlyRegenerating && (
+                                                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60">
+                                                    <Loader2 className="h-10 w-10 animate-spin text-white" />
+                                                    <p className="mt-2 text-sm text-white">Перегенерация...</p>
+                                                </div>
+                                            )}
                                             <Image
                                                 src={image.imageUrl}
                                                 alt={`Набросок для под-сцены ${scene.subscenes[index]?.subscene_id}`}
                                                 width={480}
                                                 height={480}
-                                                className="h-full w-full object-cover"
+                                                className={`h-full w-full object-cover ${isCurrentlyRegenerating ? 'blur-sm' : ''}`}
                                                 data-ai-hint="storyboard sketch"
                                             />
                                             <div className="absolute top-2 right-2">
@@ -202,22 +221,31 @@ export function StoryboardTabs({
                                                     checked={selectedSketchUrls.includes(image.imageUrl)}
                                                     onCheckedChange={() => onSelectSketch(image.imageUrl)}
                                                     className="h-6 w-6 border-white bg-black/20 data-[state=checked]:bg-primary"
+                                                    disabled={isCurrentlyRegenerating}
                                                 />
                                             </div>
                                         </div>
                                     </CardContent>
-                                    {editingPrompt === image.imageUrl && (
-                                      <div className="p-4 space-y-2">
-                                        <Textarea defaultValue={image.prompt} rows={4} />
-                                        <Button size="sm" className="w-full">Перегенерировать</Button>
+                                    {editingState?.imageUrl === image.imageUrl && (
+                                      <div className="p-4 space-y-2 border-t">
+                                        <Textarea 
+                                          value={editingState.prompt}
+                                          onChange={(e) => setEditingState({...editingState, prompt: e.target.value})}
+                                          rows={4} 
+                                          placeholder="Введите новый промпт..."
+                                        />
+                                        <Button size="sm" className="w-full" onClick={() => handleRegenerateClick(index)} disabled={isCurrentlyRegenerating}>
+                                            {isCurrentlyRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                            Перегенерировать
+                                        </Button>
                                       </div>
                                     )}
                                     <CardFooter className="p-4 grid grid-cols-2 gap-2">
-                                        <Button onClick={() => toggleEdit(image.imageUrl)} variant="secondary" className="w-full">
+                                        <Button onClick={() => toggleEdit(image.imageUrl, image.prompt)} variant="secondary" className="w-full" disabled={isCurrentlyRegenerating}>
                                             <Edit className="mr-2 h-4 w-4" />
-                                            {editingPrompt === image.imageUrl ? 'Закрыть' : 'Редактировать'}
+                                            {editingState?.imageUrl === image.imageUrl ? 'Закрыть' : 'Редактировать'}
                                         </Button>
-                                        <Button onClick={() => onEnhance(scene.scene_id)} className="w-full">
+                                        <Button onClick={() => onEnhance(scene.scene_id)} className="w-full" disabled={isCurrentlyRegenerating}>
                                             <Sparkles className="mr-2 h-4 w-4" />
                                             Улучшить
                                         </Button>
@@ -225,7 +253,7 @@ export function StoryboardTabs({
                                 </Card>
                             </div>
                         </CarouselItem>
-                    ))}
+                    )})}
                 </CarouselContent>
                 <CarouselPrevious />
                 <CarouselNext />

@@ -222,16 +222,15 @@ export interface GenerateStoryboardSketchesOutput {
 }
 
 
-async function getImages(promptText: string): Promise<string> {
+export async function getImages(promptText: string): Promise<string> {
     const requestBody = JSON.parse(JSON.stringify(COMFYUI_WORKFLOW_TEMPLATE));
-    const finalPrompt = `sketch of ${promptText}`;
-
+    
     // Update the positive prompt in the workflow (both for base and refiner)
     if (requestBody.prompt && requestBody.prompt['6'] && requestBody.prompt['6'].inputs) {
-        requestBody.prompt['6'].inputs.text = finalPrompt;
+        requestBody.prompt['6'].inputs.text = promptText;
     }
     if (requestBody.prompt && requestBody.prompt['15'] && requestBody.prompt['15'].inputs) {
-        requestBody.prompt['15'].inputs.text = finalPrompt;
+        requestBody.prompt['15'].inputs.text = promptText;
     }
 
     // Set a random seed for variety in the KSamplerAdvanced node
@@ -338,11 +337,12 @@ export async function generateStoryboardSketches(
   
   const finalPrompts = translatedDescriptions.map(d => `sketch of ${d}`);
 
-  const sketchPromises = translatedDescriptions.map(async (description, index) => {
-      const imageUrl = await getImages(description);
+  const sketchPromises = finalPrompts.map(async (prompt, index) => {
+      const translatedDescription = translatedDescriptions[index];
+      const imageUrl = await getImages(prompt);
       return {
           imageUrl,
-          prompt: finalPrompts[index],
+          prompt: constructedPrompts[index], // Return the original, non-translated, non-prefixed prompt
       };
   });
 

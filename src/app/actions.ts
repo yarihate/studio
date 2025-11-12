@@ -3,7 +3,8 @@
 import { extractTextFromDocx } from '@/ai/flows/extract-text-from-docx';
 import { extractTextFromPdf } from '@/ai/flows/extract-text-from-pdf';
 import { extractScenesFromScript } from '@/ai/flows/extract-scenes-from-script';
-import type { Scene } from '@/types/script-vision';
+import { regenerateSketch, RegenerateSketchOutput } from '@/ai/flows/regenerate-sketch';
+import type { Scene, SketchImage } from '@/types/script-vision';
 
 async function getScriptContent(file: File): Promise<string> {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -44,4 +45,20 @@ export async function handleExtractScenesFromFile(formData: FormData): Promise<S
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { error: `Failed to extract scenes from the script: ${errorMessage}` };
   }
+}
+
+export async function handleRegenerateSketch(prompt: string): Promise<SketchImage | { error: string }> {
+    try {
+        if (!prompt) {
+            throw new Error('No prompt provided.');
+        }
+
+        const { sketch } = await regenerateSketch({ prompt });
+        return sketch;
+
+    } catch (error) {
+        console.error('Error regenerating sketch:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        return { error: `Failed to regenerate sketch: ${errorMessage}` };
+    }
 }

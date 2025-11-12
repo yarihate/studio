@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { handleExtractScenesFromFile } from '@/app/actions';
+import { handleExtractScenesFromFile, handleRegenerateSketch } from '@/app/actions';
 import { AppHeader } from '@/components/app/header';
 import { ScenesSidebar } from '@/components/app/scenes-sidebar';
 import { ScriptForm } from '@/components/app/script-form';
@@ -9,12 +9,13 @@ import { StoryboardTabs } from '@/components/app/storyboard-tabs';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Animation, DetailedImage, Scene, Sketch } from '@/types/script-vision';
+import type { Animation, DetailedImage, Scene, Sketch, SketchImage } from '@/types/script-vision';
 import { generateStoryboardSketches } from '@/ai/flows/generate-storyboard-sketches';
 
 export default function HomePage() {
   const [isExtractingScenes, setIsExtractingScenes] = useState(false);
   const [isGeneratingSketches, setIsGeneratingSketches] = useState<string[]>([]);
+  const [isRegeneratingSketch, setIsRegeneratingSketch] = useState<string | null>(null); // imageUrl
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [sketches, setSketches] = useState<Sketch[]>([]);
   const [detailedImages, setDetailedImages] = useState<DetailedImage[]>([]);
@@ -101,6 +102,52 @@ export default function HomePage() {
         setIsGeneratingSketches(prev => prev.filter(id => id !== scene.scene_id));
     }
 };
+
+ const handleRegenerate = async (sceneId: string, imageIndex: number, newPrompt: string) => {
+    const originalSketch = sketches.find(s => s.sceneId === sceneId);
+    if (!originalSketch) return;
+    
+    const originalImageUrl = originalSketch.images[imageIndex].imageUrl;
+    setIsRegeneratingSketch(originalImageUrl);
+
+    try {
+      const result = await handleRegenerateSketch(newPrompt);
+      if ('error' in result) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: result.error,
+        });
+        return;
+      }
+
+      setSketches(prevSketches => {
+        return prevSketches.map(sketch => {
+          if (sketch.sceneId === sceneId) {
+            const updatedImages = [...sketch.images];
+            updatedImages[imageIndex] = result; // result is the new SketchImage
+            return { ...sketch, images: updatedImages };
+          }
+          return sketch;
+        });
+      });
+
+      toast({
+        title: 'Sketch Regenerated',
+        description: 'The sketch has been updated with the new version.',
+      });
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      toast({
+        variant: 'destructive',
+        title: 'Error Regenerating Sketch',
+        description: errorMessage,
+      });
+    } finally {
+      setIsRegeneratingSketch(null);
+    }
+  };
 
 
   const handleEnhanceSketch = (sceneId: string) => {
@@ -235,7 +282,9 @@ export default function HomePage() {
             selectedForAnimation={selectedDetailedImageIds}
             onAnimate={handleGenerateAnimation}
             isLoading={isGeneratingSketches.includes(selectedScene?.scene_id ?? '-1')}
+            isRegenerating={isRegeneratingSketch}
             onGenerateSketch={() => selectedScene && handleGenerateSketchForScene(selectedScene)}
+            onRegenerate={handleRegenerate}
             selectedSketchUrls={selectedSketchUrls}
             onSelectSketch={handleSelectSketch}
             onDownloadSelectedSketches={handleDownloadSelectedSketches}
