@@ -6,6 +6,7 @@
  * - GenerateStoryboardSketchesInput - The input type for the generateStoryboardSketches function.
  * - GenerateStoryboardSketchesOutput - The return type for the generateStoryboardSketches function.
  */
+import type { SketchImage } from '@/types/script-vision';
 
 const COMFYUI_URL = 'http://localhost:8000/prompt';
 const COMFYUI_OUTPUT_URL = 'http://localhost:8000/view';
@@ -217,19 +218,20 @@ export interface GenerateStoryboardSketchesInput {
 }
 
 export interface GenerateStoryboardSketchesOutput {
-  sketchDataUris: string[];
+  sketches: SketchImage[];
 }
 
 
 async function getImages(promptText: string): Promise<string> {
     const requestBody = JSON.parse(JSON.stringify(COMFYUI_WORKFLOW_TEMPLATE));
+    const finalPrompt = `sketch of ${promptText}`;
 
     // Update the positive prompt in the workflow (both for base and refiner)
     if (requestBody.prompt && requestBody.prompt['6'] && requestBody.prompt['6'].inputs) {
-        requestBody.prompt['6'].inputs.text = `sketch of ${promptText}`;
+        requestBody.prompt['6'].inputs.text = finalPrompt;
     }
     if (requestBody.prompt && requestBody.prompt['15'] && requestBody.prompt['15'].inputs) {
-        requestBody.prompt['15'].inputs.text = `sketch of ${promptText}`;
+        requestBody.prompt['15'].inputs.text = finalPrompt;
     }
 
     // Set a random seed for variety in the KSamplerAdvanced node
@@ -333,14 +335,19 @@ export async function generateStoryboardSketches(
 
   const translatedPromises = constructedPrompts.map((desc) => translateToEnglish(desc));
   const translatedDescriptions = await Promise.all(translatedPromises);
+  
+  const finalPrompts = translatedDescriptions.map(d => `sketch of ${d}`);
 
-  const sketchPromises = translatedDescriptions.map((description) => {
-      // The workflow now expects a "sketch of" prefix, which I am adding.
-      return getImages(description);
+  const sketchPromises = translatedDescriptions.map(async (description, index) => {
+      const imageUrl = await getImages(description);
+      return {
+          imageUrl,
+          prompt: finalPrompts[index],
+      };
   });
 
-  const sketchDataUris = await Promise.all(sketchPromises);
-  return { sketchDataUris };
+  const sketches = await Promise.all(sketchPromises);
+  return { sketches };
 }
 
 // We need the translate function here to make the prompts English for the model

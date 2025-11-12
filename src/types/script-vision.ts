@@ -20,9 +20,14 @@ export type Scene = {
   subscenes: SubScene[];
 };
 
+export interface SketchImage {
+  imageUrl: string;
+  prompt: string;
+}
+
 export interface Sketch {
   sceneId: string;
-  imageUrls: string[];
+  images: SketchImage[];
 }
 
 export interface DetailedImage {

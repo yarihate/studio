@@ -82,9 +82,9 @@ export default function HomePage() {
           props: s.props,
         }));
         
-        const { sketchDataUris } = await generateStoryboardSketches({ shotDetails });
+        const { sketches: sketchImages } = await generateStoryboardSketches({ shotDetails });
 
-        const newSketch: Sketch = { sceneId: scene.scene_id, imageUrls: sketchDataUris };
+        const newSketch: Sketch = { sceneId: scene.scene_id, images: sketchImages };
         setSketches(prev => {
             const otherSketches = prev.filter(s => s.sceneId !== scene.scene_id);
             return [...otherSketches, newSketch];
@@ -164,7 +164,7 @@ export default function HomePage() {
     selectedSketchUrls.forEach((url, index) => {
       const link = document.createElement('a');
       link.href = url;
-      const sceneId = sketches.find(s => s.imageUrls.includes(url))?.sceneId;
+      const sceneId = sketches.find(s => s.images.some(i => i.imageUrl === url))?.sceneId;
       link.download = `scene-${sceneId}-sketch-${index + 1}.png`;
       document.body.appendChild(link);
       link.click();

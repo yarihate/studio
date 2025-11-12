@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin } from 'lucide-react';
+import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit } from 'lucide-react';
 import type {
   Scene,
   Sketch,
@@ -32,6 +32,7 @@ import type {
   Animation,
 } from '@/types/script-vision';
 import { Badge } from '../ui/badge';
+import { Textarea } from '../ui/textarea';
 
 type StoryboardTabsProps = {
   scene: Scene | undefined;
@@ -104,6 +105,15 @@ export function StoryboardTabs({
   };
 
   const [activeTab, setActiveTab] = React.useState('sketches');
+  const [editingPrompt, setEditingPrompt] = React.useState<string | null>(null);
+
+  const toggleEdit = (imageUrl: string) => {
+    if (editingPrompt === imageUrl) {
+      setEditingPrompt(null);
+    } else {
+      setEditingPrompt(imageUrl);
+    }
+  };
 
   return (
     <div>
@@ -143,7 +153,7 @@ export function StoryboardTabs({
                 <TabsTrigger value="animations">Анимации</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                 {activeTab === 'sketches' && sketch && sketch.imageUrls.length > 0 && (
+                 {activeTab === 'sketches' && sketch && sketch.images.length > 0 && (
                     <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
                         <Download className="mr-2 h-4 w-4" />
                         Скачать выбранные
@@ -167,10 +177,10 @@ export function StoryboardTabs({
                     ИИ рисует, пожалуйста, подождите.
                 </p>
             </div>
-          ) : sketch && sketch.imageUrls.length > 0 ? (
+          ) : sketch && sketch.images.length > 0 ? (
              <Carousel className="w-full">
                 <CarouselContent>
-                    {sketch.imageUrls.map((imageUrl, index) => (
+                    {sketch.images.map((image, index) => (
                         <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                             <div className="p-1">
                                 <Card className="overflow-hidden">
@@ -180,7 +190,7 @@ export function StoryboardTabs({
                                     <CardContent className="p-0">
                                         <div className="relative group aspect-square">
                                             <Image
-                                                src={imageUrl}
+                                                src={image.imageUrl}
                                                 alt={`Набросок для под-сцены ${scene.subscenes[index]?.subscene_id}`}
                                                 width={480}
                                                 height={480}
@@ -189,14 +199,24 @@ export function StoryboardTabs({
                                             />
                                             <div className="absolute top-2 right-2">
                                                 <Checkbox
-                                                    checked={selectedSketchUrls.includes(imageUrl)}
-                                                    onCheckedChange={() => onSelectSketch(imageUrl)}
+                                                    checked={selectedSketchUrls.includes(image.imageUrl)}
+                                                    onCheckedChange={() => onSelectSketch(image.imageUrl)}
                                                     className="h-6 w-6 border-white bg-black/20 data-[state=checked]:bg-primary"
                                                 />
                                             </div>
                                         </div>
                                     </CardContent>
-                                    <CardFooter className="p-4">
+                                    {editingPrompt === image.imageUrl && (
+                                      <div className="p-4 space-y-2">
+                                        <Textarea defaultValue={image.prompt} rows={4} />
+                                        <Button size="sm" className="w-full">Перегенерировать</Button>
+                                      </div>
+                                    )}
+                                    <CardFooter className="p-4 grid grid-cols-2 gap-2">
+                                        <Button onClick={() => toggleEdit(image.imageUrl)} variant="secondary" className="w-full">
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            {editingPrompt === image.imageUrl ? 'Закрыть' : 'Редактировать'}
+                                        </Button>
                                         <Button onClick={() => onEnhance(scene.scene_id)} className="w-full">
                                             <Sparkles className="mr-2 h-4 w-4" />
                                             Улучшить
