@@ -36,6 +36,7 @@ export interface DetailedImage {
   id: number;
   sceneId: string;
   imageUrl: string;
+  prompt: string;
 }
 
 export interface Animation {

@@ -24,12 +24,10 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw, MessageSquare, DownloadCloud } from 'lucide-react';
+import { Download, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw, MessageSquare, DownloadCloud, Image as ImageIcon } from 'lucide-react';
 import type {
   Scene,
   Sketch,
-  DetailedImage as DetailedImageType,
-  Animation,
   SketchViewMode,
 } from '@/types/script-vision';
 import { Badge } from '../ui/badge';
@@ -39,15 +37,12 @@ import { ViewSwitcher } from '../ui/view-switcher';
 type StoryboardTabsProps = {
   scene: Scene | undefined;
   sketch: Sketch | undefined;
-  detailedImages: DetailedImageType[];
-  animations: Animation[];
-  onEnhance: (sceneId: string) => void;
-  onSelectForAnimation: (imageId: number) => void;
-  selectedForAnimation: number[];
-  onAnimate: () => void;
-  isLoading: boolean;
+  detailedImages: Sketch | undefined;
+  isLoadingSketches: boolean;
+  isLoadingDetailed: boolean;
   isRegenerating: string | null;
   onGenerateSketch: () => void;
+  onGenerateDetailed: () => void;
   onRegenerate: (sceneId: string, imageIndex: number, newPrompt: string) => void;
   onInsertSketch: (index: number) => void;
   selectedSketchUrls: string[];
@@ -95,12 +90,13 @@ const InsertButton = ({ onClick }: { onClick: () => void }) => (
   </div>
 );
 
-const SketchCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, onSelectSketch, editingState, handleRegenerateClick, toggleEdit, onEnhance }: any) => {
+const ImageCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, onSelectSketch, editingState, handleRegenerateClick, toggleEdit, cardType = 'sketch' }: any) => {
     const isCurrentlyRegenerating = isRegenerating === image.imageUrl;
+    const subsceneId = scene.subscenes[index]?.subscene_id || `Вставка ${index}`;
     return (
         <Card className="overflow-hidden">
             <CardHeader className="p-2 text-center bg-muted">
-                <p className="text-xs font-semibold truncate">Под-сцена {scene.subscenes[index]?.subscene_id || `Вставка ${index}`}</p>
+                <p className="text-xs font-semibold truncate">Под-сцена {subsceneId}</p>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="relative group aspect-square">
@@ -112,11 +108,11 @@ const SketchCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, o
                     )}
                     <Image
                         src={image.imageUrl}
-                        alt={`Набросок для под-сцены ${scene.subscenes[index]?.subscene_id}`}
+                        alt={`Изображение для под-сцены ${subsceneId}`}
                         width={480}
                         height={480}
                         className={`h-full w-full object-cover ${isCurrentlyRegenerating ? 'blur-sm' : ''}`}
-                        data-ai-hint="storyboard sketch"
+                        data-ai-hint={`${cardType} image`}
                     />
                     <div className="absolute top-2 right-2">
                         <Checkbox
@@ -128,7 +124,7 @@ const SketchCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, o
                     </div>
                 </div>
             </CardContent>
-            {editingState?.imageUrl === image.imageUrl && (
+            {editingState?.imageUrl === image.imageUrl && cardType === 'sketch' && (
               <div className="p-4 space-y-2 border-t">
                 <Textarea 
                   value={editingState.prompt}
@@ -142,15 +138,29 @@ const SketchCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, o
                 </Button>
               </div>
             )}
-            <CardFooter className="p-4 grid grid-cols-2 gap-2">
-                <Button onClick={() => toggleEdit(image.imageUrl, image.prompt)} variant="secondary" className="w-full" disabled={isCurrentlyRegenerating}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    {editingState?.imageUrl === image.imageUrl ? 'Закрыть' : 'Редактировать'}
-                </Button>
-                <Button onClick={() => onEnhance(scene.scene_id)} className="w-full" disabled={isCurrentlyRegenerating}>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Улучшить
-                </Button>
+            <CardFooter className="p-4 grid grid-cols-1 gap-2">
+                 {cardType === 'sketch' ? (
+                    <Button onClick={() => toggleEdit(image.imageUrl, image.prompt)} variant="secondary" className="w-full" disabled={isCurrentlyRegenerating}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        {editingState?.imageUrl === image.imageUrl ? 'Закрыть' : 'Редактировать'}
+                    </Button>
+                 ) : (
+                    <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                             const link = document.createElement('a');
+                             link.href = image.imageUrl;
+                             link.download = `scene-${scene.scene_id}-detailed-${index}.png`;
+                             document.body.appendChild(link);
+                             link.click();
+                             document.body.removeChild(link);
+                        }}
+                    >
+                        <Download className="mr-2 h-4 w-4" />
+                        Скачать
+                    </Button>
+                 )}
             </CardFooter>
         </Card>
     );
@@ -161,14 +171,11 @@ export function StoryboardTabs({
   scene,
   sketch,
   detailedImages,
-  animations,
-  onEnhance,
-  onSelectForAnimation,
-  selectedForAnimation,
-  onAnimate,
-  isLoading,
+  isLoadingSketches,
+  isLoadingDetailed,
   isRegenerating,
   onGenerateSketch,
+  onGenerateDetailed,
   onRegenerate,
   onInsertSketch,
   selectedSketchUrls,
@@ -186,15 +193,6 @@ export function StoryboardTabs({
       </div>
     );
   }
-
-  const handleDownload = (url: string, filename: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const [activeTab, setActiveTab] = React.useState('sketches');
   const [editingState, setEditingState] = React.useState<{imageUrl: string; prompt: string} | null>(null);
@@ -215,8 +213,29 @@ export function StoryboardTabs({
   };
 
   const hasSketches = sketch && sketch.images.length > 0;
-  const hasDetailedImages = detailedImages && detailedImages.length > 0;
+  const hasDetailedImages = detailedImages && detailedImages.images.length > 0;
   const canDownloadScene = hasSketches || hasDetailedImages;
+
+  const LoadingPlaceholder = ({ title, description }: { title: string; description: string }) => (
+    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
+        <Loader2 className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
+        <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+    </div>
+  );
+
+  const EmptyState = ({ title, description, buttonText, onClick, icon: Icon }: { title: string; description: string; buttonText: string; onClick: () => void; icon: React.ElementType }) => (
+    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
+        <Icon className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+        <Button className="mt-4" onClick={onClick}>
+            <Plus className="mr-2 h-4 w-4" />
+            {buttonText}
+        </Button>
+    </div>
+  );
+
 
   return (
     <div>
@@ -283,11 +302,10 @@ export function StoryboardTabs({
         <div className="flex items-center justify-between">
             <TabsList>
                 <TabsTrigger value="sketches">Наброски</TabsTrigger>
-                <TabsTrigger value="detailed">Детальные</TabsTrigger>
-                <TabsTrigger value="animations">Анимации</TabsTrigger>
+                <TabsTrigger value="detailed">Детализированные</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                 {activeTab === 'sketches' && sketch && sketch.images.length > 0 && (
+                 {(activeTab === 'sketches' && hasSketches) || (activeTab === 'detailed' && hasDetailedImages) && (
                     <>
                         <ViewSwitcher mode={sketchViewMode} onModeChange={onSketchViewModeChange} />
                         <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
@@ -296,25 +314,13 @@ export function StoryboardTabs({
                         </Button>
                     </>
                 )}
-                {activeTab === 'detailed' && detailedImages.length > 0 && (
-                    <Button onClick={onAnimate} disabled={selectedForAnimation.length !== 2}>
-                        <Film className="mr-2 h-4 w-4" />
-                        Создать анимацию
-                    </Button>
-                )}
             </div>
         </div>
 
         <TabsContent value="sketches" className="mt-4">
-          {isLoading ? (
-             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
-                <Loader2 className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Генерация набросков...</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                    ИИ рисует, пожалуйста, подождите.
-                </p>
-            </div>
-          ) : sketch && sketch.images.length > 0 ? (
+          {isLoadingSketches ? (
+             <LoadingPlaceholder title="Генерация набросков..." description="ИИ рисует, пожалуйста, подождите." />
+          ) : hasSketches ? (
             <>
               {sketchViewMode === 'carousel' && (
                 <Carousel className="w-full group/carousel">
@@ -326,7 +332,7 @@ export function StoryboardTabs({
                           <React.Fragment key={image.imageUrl + index}>
                             <CarouselItem className="pl-2 md:basis-1/2 lg:basis-1/3">
                                 <div className="p-1">
-                                    <SketchCard
+                                    <ImageCard
                                         scene={scene}
                                         image={image}
                                         index={index}
@@ -336,7 +342,7 @@ export function StoryboardTabs({
                                         editingState={editingState}
                                         handleRegenerateClick={handleRegenerateClick}
                                         toggleEdit={toggleEdit}
-                                        onEnhance={onEnhance}
+                                        cardType="sketch"
                                     />
                                 </div>
                             </CarouselItem>
@@ -352,9 +358,8 @@ export function StoryboardTabs({
               )}
                {sketchViewMode === 'grid' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {/* No insert buttons in grid view for simplicity for now */}
                     {sketch.images.map((image, index) => (
-                        <SketchCard
+                        <ImageCard
                             key={image.imageUrl + index}
                             scene={scene}
                             image={image}
@@ -365,119 +370,53 @@ export function StoryboardTabs({
                             editingState={editingState}
                             handleRegenerateClick={handleRegenerateClick}
                             toggleEdit={toggleEdit}
-                            onEnhance={onEnhance}
+                            cardType="sketch"
                         />
                     ))}
                 </div>
               )}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
-                <Wand className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Наброски еще не созданы</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                    Нажмите кнопку, чтобы создать AI-наброски для этой сцены.
-                </p>
-                <Button className="mt-4" onClick={onGenerateSketch}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Создать наброски
-                </Button>
-            </div>
+            <EmptyState 
+                title="Наброски еще не созданы"
+                description="Нажмите кнопку, чтобы создать AI-наброски для этой сцены."
+                buttonText="Создать наброски"
+                onClick={onGenerateSketch}
+                icon={Wand}
+            />
           )}
         </TabsContent>
 
         <TabsContent value="detailed" className="mt-4">
-          {detailedImages.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {detailedImages.map((image) => (
-                <Card key={image.id} className="overflow-hidden">
-                    <CardContent className="p-0">
-                         <div className="relative group">
-                            <Image
-                                src={image.imageUrl}
-                                alt={`Детальное изображение для сцены ${scene.scene_id}`}
-                                width={800}
-                                height={800}
-                                className="aspect-square h-full w-full object-cover"
-                                data-ai-hint="realistic photo"
-                            />
-                            <div className="absolute top-2 right-2">
-                                <Checkbox
-                                    checked={selectedForAnimation.includes(image.id)}
-                                    onCheckedChange={() => onSelectForAnimation(image.id)}
-                                    className="h-6 w-6 border-white bg-black/20 data-[state=checked]:bg-primary"
-                                />
-                            </div>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="p-4">
-                        <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => handleDownload(image.imageUrl, `scene-${scene.scene_id}-detailed-${image.id}.png`)}
-                        >
-                            <Download className="mr-2 h-4 w-4" />
-                            Скачать
-                        </Button>
-                    </CardFooter>
-                </Card>
-              ))}
-            </div>
-          ) : (
-             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
-                <Sparkles className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Детальных изображений нет</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                    Улучшите набросок, чтобы сгенерировать ультра-реалистичное изображение.
-                </p>
-                <Button className="mt-4" onClick={() => onEnhance(scene.scene_id)} disabled={!sketch}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Улучшить набросок
-                </Button>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="animations" className="mt-4">
-           {animations.length > 0 ? (
-             <div className="grid gap-4 md:grid-cols-2">
-                {animations.map((anim) => (
-                    <Card key={anim.id}>
-                        <CardHeader>
-                            <CardTitle>Сгенерированная анимация</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Image
-                                src={anim.imageUrl}
-                                alt="Generated Animation"
-                                width={1024}
-                                height={576}
-                                className="aspect-video w-full rounded-md object-cover"
-                                data-ai-hint="animation sequence"
-                            />
-                        </CardContent>
-                         <CardFooter>
-                             <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={() => handleDownload(anim.imageUrl, `scene-${scene.scene_id}-animation-${anim.id}.gif`)}
-                            >
-                                <Download className="mr-2 h-4 w-4" />
-                                Скачать
-                            </Button>
-                         </CardFooter>
-                    </Card>
+           {isLoadingDetailed ? (
+             <LoadingPlaceholder title="Генерация детализированных изображений..." description="ИИ создает фотореалистичные кадры, это может занять время." />
+          ) : hasDetailedImages ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {detailedImages.images.map((image, index) => (
+                    <ImageCard
+                        key={image.imageUrl + index}
+                        scene={scene}
+                        image={image}
+                        index={index}
+                        isRegenerating={isRegenerating}
+                        selectedSketchUrls={selectedSketchUrls}
+                        onSelectSketch={onSelectSketch}
+                        editingState={null} // No editing for detailed images
+                        handleRegenerateClick={() => {}}
+                        toggleEdit={() => {}}
+                        cardType="detailed"
+                    />
                 ))}
              </div>
-           ) : (
-             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
-                <Film className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Анимаций пока нет</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                    Выберите два детальных изображения для создания анимированного перехода.
-                </p>
-            </div>
-           )}
+          ) : (
+            <EmptyState 
+                title="Детализированных изображений нет"
+                description="Нажмите кнопку, чтобы сгенерировать фотореалистичные изображения."
+                buttonText="Создать детализированные изображения"
+                onClick={onGenerateDetailed}
+                icon={ImageIcon}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>

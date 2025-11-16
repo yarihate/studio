@@ -3,8 +3,10 @@
 import { extractTextFromDocx } from '@/ai/flows/extract-text-from-docx';
 import { extractTextFromPdf } from '@/ai/flows/extract-text-from-pdf';
 import { extractScenesFromScript } from '@/ai/flows/extract-scenes-from-script';
-import { regenerateSketch, RegenerateSketchOutput } from '@/ai/flows/regenerate-sketch';
-import type { Scene, SketchImage } from '@/types/script-vision';
+import { regenerateSketch } from '@/ai/flows/regenerate-sketch';
+import { generateSketches } from '@/ai/flows/generate-sketches';
+import { generateDetailedImages } from '@/ai/flows/generate-detailed-images';
+import type { Scene, SketchImage, DetailedImage } from '@/types/script-vision';
 
 async function getScriptContent(file: File): Promise<string> {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -36,7 +38,6 @@ export async function handleExtractScenesFromFile(formData: FormData): Promise<S
 
     const scriptContent = await getScriptContent(file);
     
-    // This function now returns a full array of scenes
     const scenes = await extractScenesFromScript({ scriptContent });
     return scenes;
 
@@ -45,6 +46,51 @@ export async function handleExtractScenesFromFile(formData: FormData): Promise<S
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { error: `Failed to extract scenes from the script: ${errorMessage}` };
   }
+}
+
+export async function handleGenerateSketches(scene: Scene): Promise<SketchImage[] | { error: string }> {
+    try {
+        const shotDetails = scene.subscenes.map(s => ({
+          description: s.description,
+          location: scene.location.place,
+          props: s.props,
+        }));
+        
+        const { sketches } = await generateSketches({ shotDetails });
+        return sketches;
+
+    } catch (error) {
+        console.error('Error generating sketches:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        return { error: `Failed to generate sketches: ${errorMessage}` };
+    }
+}
+
+export async function handleGenerateDetailedImages(scene: Scene): Promise<DetailedImage[] | { error: string }> {
+    try {
+        const shotDetails = scene.subscenes.map(s => ({
+            description: s.description,
+            location: scene.location.place,
+            props: s.props,
+        }));
+
+        const { images } = await generateDetailedImages({ shotDetails });
+
+        // The output of generateDetailedImages is SketchImage[], we map it to DetailedImage[]
+        const detailedImages: DetailedImage[] = images.map((img, index) => ({
+            id: Date.now() + index, // Assign a unique ID
+            sceneId: scene.scene_id,
+            imageUrl: img.imageUrl,
+            prompt: img.prompt,
+        }));
+
+        return detailedImages;
+
+    } catch (error) {
+        console.error('Error generating detailed images:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        return { error: `Failed to generate detailed images: ${errorMessage}` };
+    }
 }
 
 export async function handleRegenerateSketch(prompt: string): Promise<SketchImage | { error: string }> {

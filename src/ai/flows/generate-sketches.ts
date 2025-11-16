@@ -2,16 +2,17 @@
 /**
  * @fileOverview Generates storyboard sketches for scenes by calling a local ComfyUI instance.
  *
- * - generateStoryboardSketches - A function that generates storyboard sketches for given shot descriptions.
- * - GenerateStoryboardSketchesInput - The input type for the generateStoryboardSketches function.
- * - GenerateStoryboardSketchesOutput - The return type for the generateStoryboardSketches function.
+ * - generateSketches - A function that generates storyboard sketches for given shot descriptions.
+ * - GenerateSketchesInput - The input type for the generateSketches function.
+ * - GenerateSketchesOutput - The return type for the generateSketches function.
  */
 import type { SketchImage } from '@/types/script-vision';
+import { translateToEnglish } from './translate-to-english';
 
 const COMFYUI_URL = 'http://localhost:8000/prompt';
 const COMFYUI_OUTPUT_URL = 'http://localhost:8000/view';
 
-// The ComfyUI workflow template provided by the user.
+// The ComfyUI workflow template for sketches.
 const COMFYUI_WORKFLOW_TEMPLATE = {
   "client_id": "29b324cc02cd495d9ba30faa2fc20b0d",
   "prompt": {
@@ -180,7 +181,7 @@ const COMFYUI_WORKFLOW_TEMPLATE = {
     },
     "19": {
       "inputs": {
-        "filename_prefix": "ComfyUI",
+        "filename_prefix": "ComfyUI_Sketch",
         "images": [
           "17",
           0
@@ -213,16 +214,16 @@ export interface ShotDetail {
   props: string[];
 }
 
-export interface GenerateStoryboardSketchesInput {
+export interface GenerateSketchesInput {
   shotDetails: ShotDetail[];
 }
 
-export interface GenerateStoryboardSketchesOutput {
+export interface GenerateSketchesOutput {
   sketches: SketchImage[];
 }
 
 
-export async function getImages(promptText: string): Promise<string> {
+export async function getImagesFromComfyUI(promptText: string): Promise<string> {
     const requestBody = JSON.parse(JSON.stringify(COMFYUI_WORKFLOW_TEMPLATE));
     
     // Update the positive prompt in the workflow (both for base and refiner)
@@ -239,7 +240,7 @@ export async function getImages(promptText: string): Promise<string> {
     }
     
     // Log the final request body before sending
-    console.log('Sending to ComfyUI:', JSON.stringify(requestBody, null, 2));
+    console.log('Sending to ComfyUI for sketch:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(COMFYUI_URL, {
         method: 'POST',
@@ -279,15 +280,12 @@ export async function getImages(promptText: string): Promise<string> {
                 const historyJson = await historyResponse.json();
                 if (historyJson[promptId] && historyJson[promptId].outputs) {
                     const outputs = historyJson[promptId].outputs;
-                    // The output node for images is "19" (SaveImage) in the new workflow.
                     const saveImageNodeOutput = outputs['19'];
                     
                     if (saveImageNodeOutput && saveImageNodeOutput.images && saveImageNodeOutput.images.length > 0) {
                         const imageData = saveImageNodeOutput.images[0];
-                        // Construct the full URL to view the image
                         const imageUrl = `${COMFYUI_OUTPUT_URL}?filename=${imageData.filename}&subfolder=${imageData.subfolder}&type=${imageData.type}`;
                         
-                        // To return a data URI, we need to fetch the image content
                         const imageResponse = await fetch(imageUrl);
                         if (!imageResponse.ok) {
                            reject(new Error(`Failed to fetch generated image from ${imageUrl}`));
@@ -301,16 +299,13 @@ export async function getImages(promptText: string): Promise<string> {
                         resolve(dataUri);
 
                     } else {
-                        // still processing, check again
                         setTimeout(checkStatus, 2000);
                     }
                 } else {
-                     // still processing, check again
                     setTimeout(checkStatus, 2000);
                 }
             } catch (error) {
                 console.error("Error while checking ComfyUI history:", error);
-                // Keep retrying on network errors etc.
                 setTimeout(checkStatus, 3000);
             }
         };
@@ -319,9 +314,9 @@ export async function getImages(promptText: string): Promise<string> {
 }
 
 
-export async function generateStoryboardSketches(
-  input: GenerateStoryboardSketchesInput
-): Promise<GenerateStoryboardSketchesOutput> {
+export async function generateSketches(
+  input: GenerateSketchesInput
+): Promise<GenerateSketchesOutput> {
   console.log('Generating storyboard sketches for shots via ComfyUI:', input.shotDetails);
   
   const constructedPrompts = input.shotDetails.map(detail => {
@@ -338,8 +333,7 @@ export async function generateStoryboardSketches(
   const finalPrompts = translatedDescriptions.map(d => `sketch of ${d}`);
 
   const sketchPromises = finalPrompts.map(async (prompt, index) => {
-      const translatedDescription = translatedDescriptions[index];
-      const imageUrl = await getImages(prompt);
+      const imageUrl = await getImagesFromComfyUI(prompt);
       return {
           imageUrl,
           prompt: constructedPrompts[index], // Return the original, non-translated, non-prefixed prompt
@@ -349,6 +343,3 @@ export async function generateStoryboardSketches(
   const sketches = await Promise.all(sketchPromises);
   return { sketches };
 }
-
-// We need the translate function here to make the prompts English for the model
-import { translateToEnglish } from './translate-to-english';
