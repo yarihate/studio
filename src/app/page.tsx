@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { handleExtractScenesFromFile, handleRegenerateSketch, handleGenerateSketches, handleGenerateMediumDetailedImages } from '@/app/actions';
+import { handleExtractScenesFromFile, handleRegenerateSketch, handleGenerateSketches, handleGenerateMediumDetailedImages, handleGenerateDetailedImages as handleGenerateHighlyDetailedImages } from '@/app/actions';
 import { AppHeader } from '@/components/app/header';
 import { ScenesSidebar } from '@/components/app/scenes-sidebar';
 import { ScriptForm } from '@/components/app/script-form';
 import { StoryboardTabs } from '@/components/app/storyboard-tabs';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
-import type { Scene, Sketch, SketchViewMode, DownloadContext, DownloadOptions, ImageStyle, MediumDetailedImage } from '@/types/script-vision';
+import type { Scene, Sketch, SketchViewMode, DownloadContext, DownloadOptions, ImageStyle, MediumDetailedImage, DetailedImage } from '@/types/script-vision';
 import { InsertSketchModal } from '@/components/app/insert-sketch-modal';
 import { DownloadModal } from '@/components/app/download-modal';
 import JSZip from 'jszip';
@@ -139,6 +139,39 @@ const handleGenerateMediumDetailedImagesForScene = async (scene: Scene) => {
         });
     } finally {
         setIsGenerating(prev => ({ ...prev, mediumDetailed: prev.mediumDetailed.filter(id => id !== scene.scene_id) }));
+    }
+};
+
+
+const handleGenerateHighlyDetailedImagesForScene = async (scene: Scene) => {
+    setIsGenerating(prev => ({ ...prev, highlyDetailed: [...prev.highlyDetailed, scene.scene_id] }));
+    
+    try {
+        const result = await handleGenerateHighlyDetailedImages(scene, selectedImageStyle);
+
+        if ('error' in result) {
+            throw new Error(result.error);
+        }
+        
+        const newHighlyDetailedImages: Sketch = { 
+            sceneId: scene.scene_id, 
+            images: result.map(img => ({ imageUrl: img.imageUrl, prompt: img.prompt }))
+        };
+
+        setHighlyDetailedImages(prev => {
+            const otherImages = prev.filter(s => s.sceneId !== scene.scene_id);
+            return [...otherImages, newHighlyDetailedImages];
+        });
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        toast({
+            variant: 'destructive',
+            title: 'Error Generating Highly Detailed Images',
+            description: errorMessage,
+        });
+    } finally {
+        setIsGenerating(prev => ({ ...prev, highlyDetailed: prev.highlyDetailed.filter(id => id !== scene.scene_id) }));
     }
 };
 
@@ -314,6 +347,19 @@ const handleGenerateMediumDetailedImagesForScene = async (scene: Scene) => {
             });
           });
       }
+
+      if (options.content.includes('highly-detailed')) {
+        highlyDetailedImages
+          .filter(d => sceneIdsToDownload.includes(d.sceneId))
+          .forEach((imgCollection, collIndex) => {
+            imgCollection.images.forEach((img, index) => {
+                 imagesToDownload.push({
+                    url: img.imageUrl,
+                    filename: `Scene_${imgCollection.sceneId}/HighlyDetailed/HighlyDetailed_${index + 1}.${options.format}`,
+                });
+            });
+          });
+      }
       
       if (imagesToDownload.length === 0) {
         toast({ variant: 'destructive', title: 'Nothing to Download', description: 'No images of the selected type were found.' });
@@ -422,6 +468,7 @@ const handleGenerateMediumDetailedImagesForScene = async (scene: Scene) => {
               isRegenerating={isRegeneratingSketch}
               onGenerateSketch={() => selectedScene && handleGenerateSketchesForScene(selectedScene)}
               onGenerateMediumDetailed={() => selectedScene && handleGenerateMediumDetailedImagesForScene(selectedScene)}
+              onGenerateHighlyDetailed={() => selectedScene && handleGenerateHighlyDetailedImagesForScene(selectedScene)}
               onRegenerate={handleRegenerate}
               onInsertSketch={handleOpenInsertModal}
               selectedSketchUrls={selectedSketchUrls}

@@ -12,124 +12,23 @@ import { translateToEnglish } from './translate-to-english';
 const COMFYUI_URL = 'http://comfyui:8000/prompt';
 const COMFYUI_OUTPUT_URL = 'http://comfyui:8000/view';
 
-// This is a different, more photorealistic workflow for ComfyUI.
+// This is the specific workflow for Detailed Qwen-Image generation.
 const COMFYUI_WORKFLOW_TEMPLATE = {
-  "client_id": "a637d04a795f4262b7e07b4618e7d412",
-  "prompt": {
-    "3": {
-      "inputs": {
-        "seed": 857416130125438,
-        "steps": 25,
-        "cfg": 7,
-        "sampler_name": "dpmpp_2m",
-        "scheduler": "karras",
-        "denoise": 1,
-        "model": [
-          "4",
-          0
-        ],
-        "positive": [
-          "6",
-          0
-        ],
-        "negative": [
-          "7",
-          0
-        ],
-        "latent_image": [
-          "5",
-          0
-        ]
-      },
-      "class_type": "KSampler",
-      "_meta": {
-        "title": "KSampler"
-      }
-    },
-    "4": {
-      "inputs": {
-        "ckpt_name": "sd_xl_base_1.0.safetensors"
-      },
-      "class_type": "CheckpointLoaderSimple",
-      "_meta": {
-        "title": "Load Checkpoint"
-      }
-    },
-    "5": {
-      "inputs": {
-        "width": 1024,
-        "height": 1024,
-        "batch_size": 1
-      },
-      "class_type": "EmptyLatentImage",
-      "_meta": {
-        "title": "Empty Latent Image"
-      }
-    },
-    "6": {
-      "inputs": {
-        "text": "photograph of a beautiful woman, 20 years old, winter, cozy, cinematic, epic, soft light, volumetric light, very detailed, professional photo, 8k",
-        "clip": [
-          "4",
-          1
-        ]
-      },
-      "class_type": "CLIPTextEncode",
-      "_meta": {
-        "title": "CLIP Text Encode (Prompt)"
-      }
-    },
-    "7": {
-      "inputs": {
-        "text": "text, watermark, ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, blurred, watermark, grainy, signature, cut off, draft",
-        "clip": [
-          "4",
-          1
-        ]
-      },
-      "class_type": "CLIPTextEncode",
-      "_meta": {
-        "title": "CLIP Text Encode (Prompt)"
-      }
-    },
-    "8": {
-      "inputs": {
-        "samples": [
-          "3",
-          0
-        ],
-        "vae": [
-          "4",
-          2
-        ]
-      },
-      "class_type": "VAEDecode",
-      "_meta": {
-        "title": "VAE Decode"
-      }
-    },
-    "9": {
-      "inputs": {
-        "filename_prefix": "ComfyUI_Detailed",
-        "images": [
-          "8",
-          0
-        ]
-      },
-      "class_type": "SaveImage",
-      "_meta": {
-        "title": "Save Image"
-      }
+    "client_id":"088a66ccf953490db40dfef8add0c1b7",
+    "prompt":{
+        "60":{"inputs":{"filename_prefix":"ComfyUI_Detailed","images":["75:8",0]},"class_type":"SaveImage"},
+        "75:58":{"inputs":{"width":1024,"height":1024,"batch_size":1},"class_type":"EmptySD3LatentImage"},
+        "75:7":{"inputs":{"text":"","clip":["75:38",0]},"class_type":"CLIPTextEncode"},
+        "75:66":{"inputs":{"shift":3.1,"model":["75:73",0]},"class_type":"ModelSamplingAuraFlow"},
+        "75:8":{"inputs":{"samples":["75:3",0],"vae":["75:39",0]},"class_type":"VAEDecode"},
+        "75:37":{"inputs":{"unet_name":"qwen_image_fp8_e4m3fn.safetensors","weight_dtype":"default"},"class_type":"UNETLoader"},
+        "75:6":{"inputs":{"text":"a photo of a cat","clip":["75:38",0]},"class_type":"CLIPTextEncode"},
+        "75:73":{"inputs":{"lora_name":"Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors","strength_model":1,"model":["75:37",0]},"class_type":"LoraLoaderModelOnly"},
+        "75:38":{"inputs":{"clip_name":"qwen_2.5_vl_7b_fp8_scaled.safetensors","type":"qwen_image","device":"default"},"class_type":"CLIPLoader"},
+        "75:39":{"inputs":{"vae_name":"qwen_image_vae.safetensors"},"class_type":"VAELoader"},
+        "75:3":{"inputs":{"seed":1125488487853216,"steps":5,"cfg":1,"sampler_name":"euler","scheduler":"simple","denoise":1,"model":["75:66",0],"positive":["75:6",0],"negative":["75:7",0],"latent_image":["75:58",0]},"class_type":"KSampler"}
     }
-  }
 };
-
-const STYLE_SNIPPETS: Record<NonNullable<ImageStyle>, string> = {
-  'Hyper-Realistic Natural': 'hyper-realistic portrait photography, natural lighting, high dynamic range, lifelike skin texture, detailed eyes and hair, minimal color grading, soft shadows, shallow depth of field, shot on high-end mirrorless camera',
-  'Editorial / Fashion Cinematic': 'fashion editorial photography, cinematic soft lighting, glossy highlights, refined color palette, subtle professional retouching, high-end wardrobe styling, medium-format camera depth and clarity',
-  'Filmic / 35mm Aesthetic': 'cinematic 35mm film aesthetic, soft ambient lighting, subtle film grain, warm tones, analog texture',
-};
-
 
 export interface ShotDetail {
   description: string;
@@ -139,7 +38,7 @@ export interface ShotDetail {
 
 export interface GenerateDetailedImagesInput {
   shotDetails: ShotDetail[];
-  style: ImageStyle;
+  style: ImageStyle; // style is kept for type consistency but not used in this new workflow
 }
 
 export interface GenerateDetailedImagesOutput {
@@ -150,13 +49,13 @@ async function getImagesFromComfyUI(promptText: string): Promise<string> {
   const requestBody = JSON.parse(JSON.stringify(COMFYUI_WORKFLOW_TEMPLATE));
 
   // Update the positive prompt in the workflow
-  if (requestBody.prompt && requestBody.prompt['6'] && requestBody.prompt['6'].inputs) {
-    requestBody.prompt['6'].inputs.text = promptText;
+  if (requestBody.prompt && requestBody.prompt['75:6'] && requestBody.prompt['75:6'].inputs) {
+    requestBody.prompt['75:6'].inputs.text = promptText;
   }
 
   // Set a random seed for variety
-  if (requestBody.prompt && requestBody.prompt['3'] && requestBody.prompt['3'].inputs) {
-    requestBody.prompt['3'].inputs.seed = Math.floor(Math.random() * 1e15);
+  if (requestBody.prompt && requestBody.prompt['75:3'] && requestBody.prompt['75:3'].inputs) {
+    requestBody.prompt['75:3'].inputs.seed = Math.floor(Math.random() * 1e15);
   }
 
   console.log('Sending to ComfyUI for detailed image:', JSON.stringify(requestBody, null, 2));
@@ -196,7 +95,7 @@ async function getImagesFromComfyUI(promptText: string): Promise<string> {
         const historyJson = await historyResponse.json();
         if (historyJson[promptId] && historyJson[promptId].outputs) {
           const outputs = historyJson[promptId].outputs;
-          const saveImageNodeOutput = outputs['9']; // Node ID for "Save Image"
+          const saveImageNodeOutput = outputs['60']; // Node ID for "Save Image"
 
           if (saveImageNodeOutput && saveImageNodeOutput.images && saveImageNodeOutput.images.length > 0) {
             const imageData = saveImageNodeOutput.images[0];
@@ -229,7 +128,7 @@ async function getImagesFromComfyUI(promptText: string): Promise<string> {
 export async function generateDetailedImages(
   input: GenerateDetailedImagesInput
 ): Promise<GenerateDetailedImagesOutput> {
-  console.log('Generating detailed images for shots via ComfyUI:', input);
+  console.log('Generating detailed images for shots via ComfyUI (Qwen):', input);
 
   const constructedPrompts = input.shotDetails.map(detail => {
     let prompt = `${detail.description}, in ${detail.location}`;
@@ -240,12 +139,8 @@ export async function generateDetailedImages(
   });
 
   const translatedPromises = constructedPrompts.map(desc => translateToEnglish(desc));
-  const translatedDescriptions = await Promise.all(translatedPromises);
-
-  const styleSnippet = input.style ? STYLE_SNIPPETS[input.style] : 'photograph, cinematic, 8k, ultra-realistic';
+  const finalPrompts = await Promise.all(translatedPromises);
   
-  const finalPrompts = translatedDescriptions.map(d => `${styleSnippet}, ${d}`);
-
   const imagePromises = finalPrompts.map(async (prompt, index) => {
     const imageUrl = await getImagesFromComfyUI(prompt);
     return {

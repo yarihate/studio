@@ -35,6 +35,8 @@ import { Badge } from '../ui/badge';
 import { Textarea } from '../ui/textarea';
 import { ViewSwitcher } from '../ui/view-switcher';
 import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
 
 type StoryboardTabsProps = {
   scene: Scene | undefined;
@@ -47,6 +49,7 @@ type StoryboardTabsProps = {
   isRegenerating: string | null;
   onGenerateSketch: () => void;
   onGenerateMediumDetailed: () => void;
+  onGenerateHighlyDetailed: () => void;
   onRegenerate: (sceneId: string, imageIndex: number, newPrompt: string) => void;
   onInsertSketch: (index: number) => void;
   selectedSketchUrls: string[];
@@ -184,6 +187,7 @@ export function StoryboardTabs({
   isRegenerating,
   onGenerateSketch,
   onGenerateMediumDetailed,
+  onGenerateHighlyDetailed,
   onRegenerate,
   onInsertSketch,
   selectedSketchUrls,
@@ -317,7 +321,7 @@ export function StoryboardTabs({
                 <TabsTrigger value="highly-detailed">Высокая детализация</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                 {(activeTab !== 'highly-detailed' && (hasSketches || hasMediumDetailedImages)) ? (
+                 {(activeTab === 'sketches' || activeTab === 'medium-detailed' || activeTab === 'highly-detailed') && (hasSketches || hasMediumDetailedImages || hasHighlyDetailedImages) ? (
                     <>
                         <ViewSwitcher mode={sketchViewMode} onModeChange={onSketchViewModeChange} />
                         <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
@@ -405,8 +409,37 @@ export function StoryboardTabs({
            {isLoadingMediumDetailed ? (
              <LoadingPlaceholder title="Генерация изображений..." description="ИИ создает кадры средней детализации, это может занять время." />
           ) : hasMediumDetailedImages ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {mediumDetailedImages.images.map((image, index) => (
+            <div className={cn(
+                "gap-4",
+                sketchViewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "w-full"
+            )}>
+              {sketchViewMode === 'carousel' ? (
+                 <Carousel className="w-full group/carousel">
+                    <CarouselContent>
+                        {mediumDetailedImages.images.map((image, index) => (
+                            <CarouselItem key={image.imageUrl + index} className="pl-2 md:basis-1/2 lg:basis-1/3">
+                                <div className="p-1">
+                                    <ImageCard
+                                        scene={scene}
+                                        image={image}
+                                        index={index}
+                                        isRegenerating={isRegenerating}
+                                        selectedSketchUrls={selectedSketchUrls}
+                                        onSelectSketch={onSelectSketch}
+                                        editingState={null}
+                                        handleRegenerateClick={() => {}}
+                                        toggleEdit={() => {}}
+                                        cardType="medium-detailed"
+                                    />
+                                </div>
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    <CarouselPrevious />
+                    <CarouselNext />
+                </Carousel>
+              ) : (
+                mediumDetailedImages.images.map((image, index) => (
                     <ImageCard
                         key={image.imageUrl + index}
                         scene={scene}
@@ -420,7 +453,8 @@ export function StoryboardTabs({
                         toggleEdit={() => {}}
                         cardType="medium-detailed"
                     />
-                ))}
+                ))
+              )}
              </div>
           ) : (
             <EmptyState 
@@ -438,15 +472,69 @@ export function StoryboardTabs({
         </TabsContent>
 
         <TabsContent value="highly-detailed" className="mt-4">
-            <EmptyState
-                title="Скоро здесь появится высокая детализация"
-                description="Эта функция находится в разработке. Вы сможете генерировать изображения с максимальной детализацией."
-            >
-               <Button disabled>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    В разработке
-                </Button>
-            </EmptyState>
+            {isLoadingHighlyDetailed ? (
+                <LoadingPlaceholder title="Генерация детализированных изображений..." description="ИИ создает фотореалистичные кадры. Это может занять несколько минут." />
+            ) : hasHighlyDetailedImages ? (
+                 <div className={cn(
+                    "gap-4",
+                    sketchViewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "w-full"
+                )}>
+                {sketchViewMode === 'carousel' ? (
+                    <Carousel className="w-full group/carousel">
+                        <CarouselContent>
+                            {highlyDetailedImages.images.map((image, index) => (
+                                <CarouselItem key={image.imageUrl + index} className="pl-2 md:basis-1/2 lg:basis-1/3">
+                                    <div className="p-1">
+                                        <ImageCard
+                                            scene={scene}
+                                            image={image}
+                                            index={index}
+                                            isRegenerating={isRegenerating}
+                                            selectedSketchUrls={selectedSketchUrls}
+                                            onSelectSketch={onSelectSketch}
+                                            editingState={null}
+                                            handleRegenerateClick={() => {}}
+                                            toggleEdit={() => {}}
+                                            cardType="highly-detailed"
+                                        />
+                                    </div>
+                                </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                        <CarouselPrevious />
+                        <CarouselNext />
+                    </Carousel>
+                ) : (
+                    highlyDetailedImages.images.map((image, index) => (
+                        <ImageCard
+                            key={image.imageUrl + index}
+                            scene={scene}
+                            image={image}
+                            index={index}
+                            isRegenerating={isRegenerating}
+                            selectedSketchUrls={selectedSketchUrls}
+                            onSelectSketch={onSelectSketch}
+                            editingState={null}
+                            handleRegenerateClick={() => {}}
+                            toggleEdit={() => {}}
+                            cardType="highly-detailed"
+                        />
+                    ))
+                )}
+                </div>
+            ) : (
+                <EmptyState 
+                    title="Изображений высокой детализации нет"
+                    description="Выберите стиль и нажмите кнопку, чтобы сгенерировать фотореалистичные изображения для этой сцены."
+                >
+                    <div className="flex flex-col items-center gap-4">
+                         <Button onClick={() => onGenerateHighlyDetailed()} size="lg">
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Создать изображения
+                        </Button>
+                    </div>
+                </EmptyState>
+            )}
         </TabsContent>
       </Tabs>
     </div>

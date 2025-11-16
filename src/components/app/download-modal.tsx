@@ -30,7 +30,7 @@ export function DownloadModal({
   isLoading,
 }: DownloadModalProps) {
   const [format, setFormat] = useState<DownloadFormat>('zip');
-  const [content, setContent] = useState<DownloadContent[]>(['sketches', 'medium-detailed']);
+  const [content, setContent] = useState<DownloadContent[]>(['sketches', 'medium-detailed', 'highly-detailed']);
 
   const handleContentChange = (item: DownloadContent) => {
     setContent(prev =>
@@ -82,9 +82,8 @@ export function DownloadModal({
                   id="content-highly-detailed"
                   checked={content.includes('highly-detailed')}
                   onCheckedChange={() => handleContentChange('highly-detailed')}
-                  disabled // Disabled until implemented
                 />
-                <Label htmlFor="content-highly-detailed" className="font-normal text-muted-foreground">Highly Detailed</Label>
+                <Label htmlFor="content-highly-detailed" className="font-normal">Highly Detailed</Label>
               </div>
             </div>
           </div>
