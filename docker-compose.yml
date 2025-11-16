@@ -54,7 +54,6 @@ services:
       - ./comfyui/extra-model-paths.yml:/app/extra_model_paths.yml
     environment:
       - HF_TOKEN=${HF_TOKEN}
-    entrypoint: ["/app/entrypoint.sh"]
     deploy:
       resources:
         reservations:
