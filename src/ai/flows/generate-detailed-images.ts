@@ -9,8 +9,8 @@
 import type { SketchImage, ImageStyle } from '@/types/script-vision';
 import { translateToEnglish } from './translate-to-english';
 
-const COMFYUI_URL = 'http://localhost:8000/prompt';
-const COMFYUI_OUTPUT_URL = 'http://localhost:8000/view';
+const COMFYUI_URL = process.env.COMFYUI_URL || 'http://localhost:8000/prompt';
+const COMFYUI_OUTPUT_URL = process.env.COMFYUI_OUTPUT_URL || 'http://localhost:8000/view';
 
 // This is the specific workflow for Detailed Wan 2.2-based image generation.
 const COMFYUI_WORKFLOW_TEMPLATE = {
@@ -94,7 +94,7 @@ async function getImagesFromComfyUI(promptText: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const checkStatus = async () => {
       try {
-        const historyResponse = await fetch(`http://localhost:8000/history/${promptId}`);
+        const historyResponse = await fetch(`${COMFYUI_OUTPUT_URL.replace('/view', '/history')}/${promptId}`);
         if (historyResponse.status === 404) {
           setTimeout(checkStatus, 2000);
           return;
