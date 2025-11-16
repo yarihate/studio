@@ -175,6 +175,22 @@ const ImageCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, on
     );
 };
 
+const StyleSelector = ({ selectedImageStyle, onImageStyleChange }: { selectedImageStyle: ImageStyle, onImageStyleChange: (style: ImageStyle) => void }) => (
+    <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-wrap justify-center gap-2">
+            {(['Hyper-Realistic Natural', 'Editorial / Fashion Cinematic', 'Filmic / 35mm Aesthetic'] as const).map(style => (
+                <Button
+                    key={style}
+                    variant={selectedImageStyle === style ? 'default' : 'secondary'}
+                    onClick={() => onImageStyleChange(selectedImageStyle === style ? null : style)}
+                >
+                    {style}
+                </Button>
+            ))}
+        </div>
+    </div>
+);
+
 
 export function StoryboardTabs({
   scene,
@@ -321,7 +337,7 @@ export function StoryboardTabs({
                 <TabsTrigger value="highly-detailed">Высокая детализация</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                 {(activeTab === 'sketches' || activeTab === 'medium-detailed' || activeTab === 'highly-detailed') && (hasSketches || hasMediumDetailedImages || hasHighlyDetailedImages) ? (
+                 {(hasSketches || hasMediumDetailedImages || hasHighlyDetailedImages) ? (
                     <>
                         <ViewSwitcher mode={sketchViewMode} onModeChange={onSketchViewModeChange} />
                         <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
@@ -395,12 +411,15 @@ export function StoryboardTabs({
           ) : (
              <EmptyState 
                 title="Наброски еще не созданы"
-                description="Нажмите кнопку, чтобы создать AI-наброски для этой сцены."
+                description="Выберите стиль и нажмите кнопку, чтобы создать AI-наброски для этой сцены."
              >
-                <Button onClick={onGenerateSketch}>
-                    <Wand className="mr-2 h-4 w-4" />
-                    Создать наброски
-                </Button>
+                <div className="flex flex-col items-center gap-4">
+                    <StyleSelector selectedImageStyle={selectedImageStyle} onImageStyleChange={onImageStyleChange} />
+                    <Button onClick={onGenerateSketch}>
+                        <Wand className="mr-2 h-4 w-4" />
+                        Создать наброски
+                    </Button>
+                </div>
              </EmptyState>
           )}
         </TabsContent>
@@ -459,9 +478,10 @@ export function StoryboardTabs({
           ) : (
             <EmptyState 
                 title="Изображений средней детализации нет"
-                description="Нажмите кнопку, чтобы сгенерировать изображения для этой сцены."
+                description="Выберите стиль и нажмите кнопку, чтобы сгенерировать изображения для этой сцены."
             >
                 <div className="flex flex-col items-center gap-4">
+                    <StyleSelector selectedImageStyle={selectedImageStyle} onImageStyleChange={onImageStyleChange} />
                     <Button onClick={() => onGenerateMediumDetailed()} size="lg">
                         <Sparkles className="mr-2 h-4 w-4" />
                         Создать изображения
@@ -527,18 +547,8 @@ export function StoryboardTabs({
                     title="Изображений высокой детализации нет"
                     description="Выберите стиль и нажмите кнопку, чтобы сгенерировать фотореалистичные изображения для этой сцены."
                 >
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {(['Hyper-Realistic Natural', 'Editorial / Fashion Cinematic', 'Filmic / 35mm Aesthetic'] as const).map(style => (
-                                <Button
-                                    key={style}
-                                    variant={selectedImageStyle === style ? 'default' : 'secondary'}
-                                    onClick={() => onImageStyleChange(selectedImageStyle === style ? null : style)}
-                                >
-                                    {style}
-                                </Button>
-                            ))}
-                        </div>
+                     <div className="flex flex-col items-center gap-4">
+                        <StyleSelector selectedImageStyle={selectedImageStyle} onImageStyleChange={onImageStyleChange} />
                          <Button onClick={() => onGenerateHighlyDetailed()} size="lg">
                             <Sparkles className="mr-2 h-4 w-4" />
                             Создать изображения

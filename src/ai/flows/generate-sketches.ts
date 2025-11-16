@@ -275,14 +275,15 @@ export async function getImagesFromComfyUI(promptText: string): Promise<string> 
     return new Promise((resolve, reject) => {
         const checkStatus = async () => {
             try {
-                const historyResponse = await fetch(`${HISTORY_URL}/${promptId}`, { method: 'GET' });
+                const historyResponse = await fetch(`${HISTORY_URL}/${promptId}`);
                 if (!historyResponse.ok) {
                     // If history is not yet available, wait and retry
                     if (historyResponse.status === 404) {
                         setTimeout(checkStatus, 2000); // Check every 2 seconds
                         return;
                     }
-                    reject(new Error(`Failed to get history for prompt ${promptId}. Status: ${historyResponse.status}`));
+                    const errorText = await historyResponse.text();
+                    reject(new Error(`Failed to get history for prompt ${promptId}. Status: ${historyResponse.status}, Body: ${errorText}`));
                     return;
                 }
 

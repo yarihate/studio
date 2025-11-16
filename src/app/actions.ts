@@ -49,7 +49,7 @@ export async function handleExtractScenesFromFile(formData: FormData): Promise<S
   }
 }
 
-export async function handleGenerateSketches(scene: Scene): Promise<SketchImage[] | { error: string }> {
+export async function handleGenerateSketches(scene: Scene, style: ImageStyle): Promise<SketchImage[] | { error: string }> {
     try {
         const shotDetails = scene.subscenes.map(s => ({
           description: s.description,
@@ -57,7 +57,7 @@ export async function handleGenerateSketches(scene: Scene): Promise<SketchImage[
           props: s.props,
         }));
         
-        const { sketches } = await generateSketches({ shotDetails });
+        const { sketches } = await generateSketches({ shotDetails, style });
         return sketches;
 
     } catch (error) {
@@ -67,7 +67,7 @@ export async function handleGenerateSketches(scene: Scene): Promise<SketchImage[
     }
 }
 
-export async function handleGenerateMediumDetailedImages(scene: Scene): Promise<MediumDetailedImage[] | { error: string }> {
+export async function handleGenerateMediumDetailedImages(scene: Scene, style: ImageStyle): Promise<MediumDetailedImage[] | { error: string }> {
     try {
         const shotDetails = scene.subscenes.map(s => ({
             description: s.description,
@@ -75,7 +75,7 @@ export async function handleGenerateMediumDetailedImages(scene: Scene): Promise<
             props: s.props,
         }));
 
-        const { images } = await generateMediumDetailedImages({ shotDetails });
+        const { images } = await generateMediumDetailedImages({ shotDetails, style });
 
         const mediumDetailedImages: MediumDetailedImage[] = images.map((img, index) => ({
             id: Date.now() + index,
