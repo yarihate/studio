@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw, MessageSquare } from 'lucide-react';
+import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw, MessageSquare, DownloadCloud } from 'lucide-react';
 import type {
   Scene,
   Sketch,
@@ -53,6 +53,7 @@ type StoryboardTabsProps = {
   selectedSketchUrls: string[];
   onSelectSketch: (imageUrl: string) => void;
   onDownloadSelectedSketches: () => void;
+  onDownloadScene: () => void;
   onCommentChange: (sceneId: string, subsceneId: string | null, text: string) => void;
   sketchViewMode: SketchViewMode;
   onSketchViewModeChange: (mode: SketchViewMode) => void;
@@ -173,6 +174,7 @@ export function StoryboardTabs({
   selectedSketchUrls,
   onSelectSketch,
   onDownloadSelectedSketches,
+  onDownloadScene,
   onCommentChange,
   sketchViewMode,
   onSketchViewModeChange,
@@ -212,12 +214,22 @@ export function StoryboardTabs({
     }
   };
 
+  const hasSketches = sketch && sketch.images.length > 0;
+  const hasDetailedImages = detailedImages && detailedImages.length > 0;
+  const canDownloadScene = hasSketches || hasDetailedImages;
+
   return (
     <div>
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl">Сцена {scene.scene_id}: {scene.scene_title}</CardTitle>
-          <CardDescription>{scene.general_context}</CardDescription>
+        <CardHeader className="flex-row items-start justify-between">
+          <div>
+            <CardTitle className="font-headline text-2xl">Сцена {scene.scene_id}: {scene.scene_title}</CardTitle>
+            <CardDescription>{scene.general_context}</CardDescription>
+          </div>
+          <Button onClick={onDownloadScene} variant="outline" disabled={!canDownloadScene}>
+            <DownloadCloud className="mr-2 h-4 w-4" />
+            Download Scene
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">

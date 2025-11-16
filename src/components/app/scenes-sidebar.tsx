@@ -10,27 +10,20 @@ import {
 import type { Scene } from '@/types/script-vision';
 import { Download, Film } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useToast } from '@/hooks/use-toast';
 
 type ScenesSidebarProps = {
   scenes: Scene[];
   selectedSceneId: string | null;
   onSelectScene: (id: string) => void;
+  onDownloadProject: () => void;
 };
 
 export function ScenesSidebar({
   scenes,
   selectedSceneId,
   onSelectScene,
+  onDownloadProject,
 }: ScenesSidebarProps) {
-  const { toast } = useToast();
-  const handleDownloadProject = () => {
-    toast({
-      title: "Feature not available",
-      description: "Downloading the entire project is not yet implemented.",
-    });
-  };
-
   return (
     <Sidebar>
       <SidebarHeader>
@@ -60,7 +53,7 @@ export function ScenesSidebar({
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <Button onClick={handleDownloadProject} variant="outline" className="w-full">
+        <Button onClick={onDownloadProject} variant="outline" className="w-full">
             <Download className="mr-2 h-4 w-4" />
             Download Project
         </Button>

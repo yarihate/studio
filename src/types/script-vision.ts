@@ -45,3 +45,15 @@ export interface Animation {
 }
 
 export type SketchViewMode = 'carousel' | 'grid';
+
+export type DownloadFormat = 'png' | 'jpg' | 'zip';
+export type DownloadContent = 'sketches' | 'detailed';
+
+export interface DownloadOptions {
+  format: DownloadFormat;
+  content: DownloadContent[];
+}
+
+export type DownloadContext = 
+  | { type: 'project' }
+  | { type: 'scene'; sceneId: string };

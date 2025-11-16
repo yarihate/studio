@@ -9,9 +9,13 @@ import { StoryboardTabs } from '@/components/app/storyboard-tabs';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Animation, DetailedImage, Scene, Sketch, SketchImage, SketchViewMode } from '@/types/script-vision';
+import type { Animation, DetailedImage, Scene, Sketch, SketchImage, SketchViewMode, DownloadContext, DownloadOptions } from '@/types/script-vision';
 import { generateStoryboardSketches } from '@/ai/flows/generate-storyboard-sketches';
 import { InsertSketchModal } from '@/components/app/insert-sketch-modal';
+import { DownloadModal } from '@/components/app/download-modal';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+
 
 export default function HomePage() {
   const [isExtractingScenes, setIsExtractingScenes] = useState(false);
@@ -32,6 +36,10 @@ export default function HomePage() {
   const [isInserting, setIsInserting] = useState(false);
 
   const [sketchViewMode, setSketchViewMode] = useState<SketchViewMode>('carousel');
+
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [downloadContext, setDownloadContext] = useState<DownloadContext>({ type: 'project' });
+  const [isDownloading, setIsDownloading] = useState(false);
 
 
   const { toast } = useToast();
@@ -278,6 +286,90 @@ export default function HomePage() {
     });
   };
 
+  const handleInitiateDownload = (context: DownloadContext) => {
+    setDownloadContext(context);
+    setIsDownloadModalOpen(true);
+  };
+
+  const handleConfirmDownload = async (options: DownloadOptions) => {
+    setIsDownloading(true);
+    setIsDownloadModalOpen(false);
+
+    toast({
+      title: 'Preparing Download',
+      description: 'Gathering files, please wait...',
+    });
+
+    try {
+      const sceneIdsToDownload = downloadContext.type === 'scene' ? [downloadContext.sceneId] : scenes.map(s => s.scene_id);
+      
+      const imagesToDownload: { url: string; filename: string }[] = [];
+
+      if (options.content.includes('sketches')) {
+        sketches
+          .filter(s => sceneIdsToDownload.includes(s.sceneId))
+          .forEach(s => {
+            s.images.forEach((img, index) => {
+              imagesToDownload.push({
+                url: img.imageUrl,
+                filename: `Scene_${s.sceneId}/Sketches/Sketch_${index + 1}.${options.format}`,
+              });
+            });
+          });
+      }
+
+      if (options.content.includes('detailed')) {
+        detailedImages
+          .filter(d => sceneIdsToDownload.includes(d.sceneId))
+          .forEach((img, index) => {
+            imagesToDownload.push({
+              url: img.imageUrl,
+              filename: `Scene_${img.sceneId}/Detailed/Detailed_${index + 1}.${options.format}`,
+            });
+          });
+      }
+      
+      if (imagesToDownload.length === 0) {
+        toast({ variant: 'destructive', title: 'Nothing to Download', description: 'No images of the selected type were found.' });
+        setIsDownloading(false);
+        return;
+      }
+
+      if (options.format === 'zip') {
+        const zip = new JSZip();
+        const imagePromises = imagesToDownload.map(async (img) => {
+          // Fetch the image data, handling potential CORS issues with a proxy if needed
+          const response = await fetch(img.url);
+          const blob = await response.blob();
+          zip.file(img.filename, blob);
+        });
+
+        await Promise.all(imagePromises);
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, `${downloadContext.type === 'scene' ? `Scene_${downloadContext.sceneId}` : 'ScriptVision_Project'}.zip`);
+      } else {
+        // Individual downloads
+        imagesToDownload.forEach(img => {
+           // We can't change the format on client side without a canvas, so we'll just name it correctly
+           const filename = img.filename.replace(/\.zip/i, `.${options.format}`);
+          saveAs(img.url, filename.replace(/\//g, '_'));
+        });
+      }
+
+      toast({
+        title: 'Download Started',
+        description: `${imagesToDownload.length} image(s) are being downloaded.`,
+      });
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      toast({ variant: 'destructive', title: 'Download Failed', description: errorMessage });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+
   const handleGenerateAnimation = () => {
     if (selectedDetailedImageIds.length !== 2 || !selectedSceneId) return;
     const placeholder = PlaceHolderImages.find((img) => img.id === 'animation-preview');
@@ -340,6 +432,12 @@ export default function HomePage() {
         onSubmit={handleInsertSketch}
         isLoading={isInserting}
       />
+      <DownloadModal
+        isOpen={isDownloadModalOpen}
+        onClose={() => setIsDownloadModalOpen(false)}
+        onSubmit={handleConfirmDownload}
+        isLoading={isDownloading}
+      />
       <SidebarProvider>
         <ScenesSidebar
           scenes={scenes}
@@ -348,6 +446,7 @@ export default function HomePage() {
             setSelectedSceneId(id);
             setSelectedSketchUrls([]); // Reset selection when changing scenes
           }}
+          onDownloadProject={() => handleInitiateDownload({ type: 'project' })}
         />
         <SidebarInset>
           <AppHeader />
@@ -372,6 +471,7 @@ export default function HomePage() {
               selectedSketchUrls={selectedSketchUrls}
               onSelectSketch={handleSelectSketch}
               onDownloadSelectedSketches={handleDownloadSelectedSketches}
+              onDownloadScene={() => selectedScene && handleInitiateDownload({ type: 'scene', sceneId: selectedScene.scene_id })}
               onInsertSketch={handleOpenInsertModal}
               onCommentChange={handleCommentChange}
               sketchViewMode={sketchViewMode}
