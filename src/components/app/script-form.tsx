@@ -26,9 +26,14 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Clapperboard, FileUp, FileCheck } from 'lucide-react';
 
 const FormSchema = z.object({
-  file: z.any()
-    .refine((val) => val instanceof File, 'Необходимо загрузить файл.')
-    .refine(file => file.size > 0, 'Файл не может быть пустым.'),
+  file: z
+    .any()
+    .refine((val) => val instanceof FileList && val.length > 0, {
+      message: 'Необходимо загрузить файл.',
+    })
+    .refine((val) => val?.[0]?.size > 0, {
+      message: 'Файл не может быть пустым.',
+    }),
 });
 
 type ScriptFormProps = {
@@ -51,12 +56,18 @@ export function ScriptForm({ onSubmit, isLoading }: ScriptFormProps) {
     const file = event.target.files?.[0];
     if (file) {
       setFileName(file.name);
-      form.setValue('file', file, { shouldValidate: true });
+      // We pass the FileList to the form
+      form.setValue('file', event.target.files, { shouldValidate: true });
+    } else {
+      setFileName(null);
+      form.setValue('file', null, { shouldValidate: true });
     }
   };
 
   function onFormSubmit(data: z.infer<typeof FormSchema>) {
-    onSubmit(data.file);
+    // We extract the File from the FileList before submitting
+    const file = data.file[0];
+    onSubmit(file);
   }
 
   return (
@@ -77,7 +88,7 @@ export function ScriptForm({ onSubmit, isLoading }: ScriptFormProps) {
               <FormField
                 control={form.control}
                 name="file"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel className="sr-only">Script File</FormLabel>
                     <FormControl>
