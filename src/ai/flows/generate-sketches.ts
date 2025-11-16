@@ -6,11 +6,13 @@
  * - GenerateSketchesInput - The input type for the generateSketches function.
  * - GenerateSketchesOutput - The return type for the generateSketches function.
  */
-import type { SketchImage } from '@/types/script-vision';
+import type { SketchImage, ImageStyle } from '@/types/script-vision';
 import { translateToEnglish } from './translate-to-english';
 
 const COMFYUI_URL = process.env.COMFYUI_URL || 'http://localhost:8000/prompt';
 const COMFYUI_OUTPUT_URL = process.env.COMFYUI_OUTPUT_URL || 'http://localhost:8000/view';
+const HISTORY_URL = (process.env.COMFYUI_URL || 'http://localhost:8000').replace('/prompt', '/history');
+
 
 // The ComfyUI workflow template for sketches.
 const COMFYUI_WORKFLOW_TEMPLATE = {
@@ -216,11 +218,18 @@ export interface ShotDetail {
 
 export interface GenerateSketchesInput {
   shotDetails: ShotDetail[];
+  style: ImageStyle;
 }
 
 export interface GenerateSketchesOutput {
   sketches: SketchImage[];
 }
+
+const STYLE_SNIPPETS: Record<NonNullable<ImageStyle>, string> = {
+  'Hyper-Realistic Natural': 'hyper-realistic portrait photography, natural lighting, high dynamic range, lifelike skin texture, detailed eyes and hair, minimal color grading, soft shadows, shallow depth of field, shot on high-end mirrorless camera',
+  'Editorial / Fashion Cinematic': 'fashion editorial photography, cinematic soft lighting, glossy highlights, refined color palette, subtle professional retouching, high-end wardrobe styling, medium-format camera depth and clarity',
+  'Filmic / 35mm Aesthetic': 'cinematic 35mm film aesthetic, soft ambient lighting, subtle film grain, warm tones, analog texture',
+};
 
 
 export async function getImagesFromComfyUI(promptText: string): Promise<string> {
@@ -266,7 +275,7 @@ export async function getImagesFromComfyUI(promptText: string): Promise<string> 
     return new Promise((resolve, reject) => {
         const checkStatus = async () => {
             try {
-                const historyResponse = await fetch(`${COMFYUI_OUTPUT_URL.replace('/view', '/history')}/${promptId}`);
+                const historyResponse = await fetch(`${HISTORY_URL}/${promptId}`, { method: 'GET' });
                 if (!historyResponse.ok) {
                     // If history is not yet available, wait and retry
                     if (historyResponse.status === 404) {
@@ -330,7 +339,13 @@ export async function generateSketches(
   const translatedPromises = constructedPrompts.map((desc) => translateToEnglish(desc));
   const translatedDescriptions = await Promise.all(translatedPromises);
   
-  const finalPrompts = translatedDescriptions.map(d => `sketch of ${d}`);
+  const finalPrompts = translatedDescriptions.map(basePrompt => {
+      let finalPrompt = `sketch of ${basePrompt}`;
+      if(input.style && STYLE_SNIPPETS[input.style]) {
+          finalPrompt += `, ${STYLE_SNIPPETS[input.style]}`;
+      }
+      return finalPrompt;
+  });
 
   const sketchPromises = finalPrompts.map(async (prompt, index) => {
       const imageUrl = await getImagesFromComfyUI(prompt);

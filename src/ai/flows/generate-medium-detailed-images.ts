@@ -6,11 +6,12 @@
  * - GenerateMediumDetailedImagesInput - The input type for the function.
  * - GenerateMediumDetailedImagesOutput - The return type for the function.
  */
-import type { SketchImage } from '@/types/script-vision';
+import type { SketchImage, ImageStyle } from '@/types/script-vision';
 import { translateToEnglish } from './translate-to-english';
 
 const COMFYUI_URL = process.env.COMFYUI_URL || 'http://localhost:8000/prompt';
 const COMFYUI_OUTPUT_URL = process.env.COMFYUI_OUTPUT_URL || 'http://localhost:8000/view';
+const HISTORY_URL = (process.env.COMFYUI_URL || 'http://localhost:8000').replace('/prompt', '/history');
 
 // This is the specific workflow for Medium Detailed Qwen-Image generation.
 const COMFYUI_WORKFLOW_TEMPLATE = {
@@ -39,11 +40,18 @@ export interface ShotDetail {
 
 export interface GenerateMediumDetailedImagesInput {
   shotDetails: ShotDetail[];
+  style: ImageStyle;
 }
 
 export interface GenerateMediumDetailedImagesOutput {
   images: SketchImage[];
 }
+
+const STYLE_SNIPPETS: Record<NonNullable<ImageStyle>, string> = {
+  'Hyper-Realistic Natural': 'hyper-realistic portrait photography, natural lighting, high dynamic range, lifelike skin texture, detailed eyes and hair, minimal color grading, soft shadows, shallow depth of field, shot on high-end mirrorless camera',
+  'Editorial / Fashion Cinematic': 'fashion editorial photography, cinematic soft lighting, glossy highlights, refined color palette, subtle professional retouching, high-end wardrobe styling, medium-format camera depth and clarity',
+  'Filmic / 35mm Aesthetic': 'cinematic 35mm film aesthetic, soft ambient lighting, subtle film grain, warm tones, analog texture',
+};
 
 async function getImagesFromComfyUI(promptText: string): Promise<string> {
   const requestBody = JSON.parse(JSON.stringify(COMFYUI_WORKFLOW_TEMPLATE));
@@ -82,12 +90,12 @@ async function getImagesFromComfyUI(promptText: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const checkStatus = async () => {
       try {
-        const historyResponse = await fetch(`${COMFYUI_OUTPUT_URL.replace('/view', '/history')}/${promptId}`);
-        if (historyResponse.status === 404) {
-          setTimeout(checkStatus, 2000);
-          return;
-        }
+        const historyResponse = await fetch(`${HISTORY_URL}/${promptId}`, { method: 'GET' });
         if (!historyResponse.ok) {
+          if (historyResponse.status === 404) {
+            setTimeout(checkStatus, 2000);
+            return;
+          }
           reject(new Error(`Failed to get history for prompt ${promptId}. Status: ${historyResponse.status}`));
           return;
         }
@@ -140,7 +148,14 @@ export async function generateMediumDetailedImages(
   });
 
   const translatedPromises = constructedPrompts.map(desc => translateToEnglish(desc));
-  const finalPrompts = await Promise.all(translatedPromises);
+  const translatedBasePrompts = await Promise.all(translatedPromises);
+  
+  const finalPrompts = translatedBasePrompts.map(basePrompt => {
+      if(input.style && STYLE_SNIPPETS[input.style]) {
+          return `${basePrompt}, ${STYLE_SNIPPETS[input.style]}`;
+      }
+      return basePrompt;
+  });
   
   const imagePromises = finalPrompts.map(async (prompt, index) => {
     const imageUrl = await getImagesFromComfyUI(prompt);

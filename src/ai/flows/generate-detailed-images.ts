@@ -11,6 +11,7 @@ import { translateToEnglish } from './translate-to-english';
 
 const COMFYUI_URL = process.env.COMFYUI_URL || 'http://localhost:8000/prompt';
 const COMFYUI_OUTPUT_URL = process.env.COMFYUI_OUTPUT_URL || 'http://localhost:8000/view';
+const HISTORY_URL = (process.env.COMFYUI_URL || 'http://localhost:8000').replace('/prompt', '/history');
 
 // This is the specific workflow for Detailed Wan 2.2-based image generation.
 const COMFYUI_WORKFLOW_TEMPLATE = {
@@ -94,12 +95,12 @@ async function getImagesFromComfyUI(promptText: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const checkStatus = async () => {
       try {
-        const historyResponse = await fetch(`${COMFYUI_OUTPUT_URL.replace('/view', '/history')}/${promptId}`);
-        if (historyResponse.status === 404) {
-          setTimeout(checkStatus, 2000);
-          return;
-        }
+        const historyResponse = await fetch(`${HISTORY_URL}/${promptId}`, { method: 'GET' });
         if (!historyResponse.ok) {
+          if (historyResponse.status === 404) {
+            setTimeout(checkStatus, 2000);
+            return;
+          }
           reject(new Error(`Failed to get history for prompt ${promptId}. Status: ${historyResponse.status}`));
           return;
         }
@@ -168,6 +169,4 @@ export async function generateDetailedImages(
     };
   });
 
-  const images = await Promise.all(imagePromises);
-  return { images };
-}
+  

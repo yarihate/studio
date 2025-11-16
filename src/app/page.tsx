@@ -86,7 +86,7 @@ export default function HomePage() {
     setIsGenerating(prev => ({ ...prev, sketches: [...prev.sketches, scene.scene_id] }));
     
     try {
-        const result = await handleGenerateSketches(scene);
+        const result = await handleGenerateSketches(scene, selectedImageStyle);
 
         if ('error' in result) {
             throw new Error(result.error);
@@ -114,7 +114,7 @@ const handleGenerateMediumDetailedImagesForScene = async (scene: Scene) => {
     setIsGenerating(prev => ({ ...prev, mediumDetailed: [...prev.mediumDetailed, scene.scene_id] }));
     
     try {
-        const result = await handleGenerateMediumDetailedImages(scene);
+        const result = await handleGenerateMediumDetailedImages(scene, selectedImageStyle);
 
         if ('error' in result) {
             throw new Error(result.error);
