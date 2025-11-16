@@ -14,7 +14,8 @@ services:
       - .env.docker
     command: npm run dev
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
 
   ollama:
     image: ollama/ollama
@@ -33,6 +34,11 @@ services:
         echo 'Models downloaded. Ollama is running.' &&
         wait
       "
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list | grep -q 'hf.co/unsloth/Qwen3-14B-GGUF:Q5_K_M' && ollama list | grep -q 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M'"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
 
 volumes:
   ollama_data:
