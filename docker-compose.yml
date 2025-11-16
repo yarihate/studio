@@ -15,7 +15,7 @@ services:
     command: npm run dev
     depends_on:
       ollama:
-        condition: service_healthy
+        condition: service_started
       comfyui:
         condition: service_started
 
@@ -30,17 +30,16 @@ services:
     command: >
       "
         ollama serve &
-        sleep 5 &&
-        ollama pull hf.co/unsloth/Qwen3-14B-GGUF:Q5_K_M &&
-        ollama pull hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M &&
-        echo 'Models downloaded. Ollama is running.' &&
-        wait
+        sleep 5;
+        until ollama list | grep -q 'hf.co/unsloth/Qwen3-14B-GGUF:Q5_K_M' && ollama list | grep -q 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M'; do
+          echo 'Waiting for models to be pulled...';
+          ollama pull hf.co/unsloth/Qwen3-14B-GGUF:Q5_K_M || echo 'Failed to pull Qwen3-14B, retrying...';
+          ollama pull hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M || echo 'Failed to pull Qwen3-8B, retrying...';
+          sleep 10;
+        done;
+        echo 'Models are ready. Ollama is running.';
+        wait;
       "
-    healthcheck:
-      test: ["CMD-SHELL", "ollama list | grep -q 'hf.co/unsloth/Qwen3-14B-GGUF:Q5_K_M' && ollama list | grep -q 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M'"]
-      interval: 10s
-      timeout: 5s
-      retries: 60
 
   comfyui:
     build:
