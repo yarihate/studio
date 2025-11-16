@@ -54,21 +54,7 @@ services:
       - ./comfyui/extra-model-paths.yml:/app/extra_model_paths.yml
     environment:
       - HF_TOKEN=${HF_TOKEN}
-    command: >
-      sh -c "
-        [ -f /app/models/checkpoints/sd_xl_base_1.0.safetensors ] || wget -q -O /app/models/checkpoints/sd_xl_base_1.0.safetensors https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors && \
-        [ -f /app/models/checkpoints/sd_xl_refiner_1.0.safetensors ] || wget -q -O /app/models/checkpoints/sd_xl_refiner_1.0.safetensors https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_refiner_1.0.safetensors && \
-        [ -f /app/models/loras/Minute_Sketch_v2_R-16.safetensors ] || wget -q -O /app/models/loras/Minute_Sketch_v2_R-16.safetensors 'https://civitai.com/api/download/models/293240?token=${HF_TOKEN}' && \
-        [ -f /app/models/unet/qwen_image_fp8_e4m3fn.safetensors ] || wget -q -O /app/models/unet/qwen_image_fp8_e4m3fn.safetensors https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_fp8_e4m3fn.safetensors && \
-        [ -f /app/models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors ] || wget -q -O /app/models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors && \
-        [ -f /app/models/loras/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors ] || wget -q -O /app/models/loras/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors 'https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors?download=true' && \
-        [ -f /app/models/vae/qwen_image_vae.safetensors ] || wget -q -O /app/models/vae/qwen_image_vae.safetensors https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors && \
-        [ -f /app/models/text_encoders/umt5xxl-encoder-q8_0.gguf ] || wget -q -O /app/models/text_encoders/umt5xxl-encoder-q8_0.gguf https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5xxl-encoder-q8_0.gguf?download=true && \
-        [ -f /app/models/unet/Wan2.2-T2V-A14B-LowNoise-Q8_0.gguf ] || wget -q -O /app/models/unet/Wan2.2-T2V-A14B-LowNoise-Q8_0.gguf https://huggingface.co/kj-nodes/Wan-Video-2.2/resolve/main/Wan2.2-T2V-A14B-LowNoise-Q8_0.gguf?download=true && \
-        [ -f /app/models/vae/wan_2.1_vae.safetensors ] || wget -q -O /app/models/vae/wan_2.1_vae.safetensors https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors?download=true && \
-        [ -f /app/models/loras/Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors ] || wget -q -O /app/models/loras/Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors 'https://huggingface.co/kj-nodes/Wan-Video-2.1-Samples-and-workflows/resolve/main/Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors?download=true' && \
-        python3 main.py --listen --port 8000
-      "
+    entrypoint: ["/app/entrypoint.sh"]
     deploy:
       resources:
         reservations:
