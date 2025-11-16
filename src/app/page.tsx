@@ -9,7 +9,7 @@ import { StoryboardTabs } from '@/components/app/storyboard-tabs';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Animation, DetailedImage, Scene, Sketch, SketchImage } from '@/types/script-vision';
+import type { Animation, DetailedImage, Scene, Sketch, SketchImage, SketchViewMode } from '@/types/script-vision';
 import { generateStoryboardSketches } from '@/ai/flows/generate-storyboard-sketches';
 import { InsertSketchModal } from '@/components/app/insert-sketch-modal';
 
@@ -30,6 +30,8 @@ export default function HomePage() {
   const [isInsertModalOpen, setIsInsertModalOpen] = useState(false);
   const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null);
   const [isInserting, setIsInserting] = useState(false);
+
+  const [sketchViewMode, setSketchViewMode] = useState<SketchViewMode>('carousel');
 
 
   const { toast } = useToast();
@@ -372,6 +374,8 @@ export default function HomePage() {
               onDownloadSelectedSketches={handleDownloadSelectedSketches}
               onInsertSketch={handleOpenInsertModal}
               onCommentChange={handleCommentChange}
+              sketchViewMode={sketchViewMode}
+              onSketchViewModeChange={setSketchViewMode}
             />
           </main>
         </SidebarInset>

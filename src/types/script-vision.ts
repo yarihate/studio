@@ -43,3 +43,5 @@ export interface Animation {
   sceneId: string;
   imageUrl: string;
 }
+
+export type SketchViewMode = 'carousel' | 'grid';
