@@ -12,9 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set the working directory
 WORKDIR /app
 
-# Clone the ComfyUI repository and install dependencies
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git . \
-    && pip install --no-cache-dir -r requirements.txt
+# Clone the ComfyUI repository
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the entrypoint script
 COPY entrypoint.sh /app/entrypoint.sh
