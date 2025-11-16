@@ -9,8 +9,8 @@
 import type { SketchImage } from '@/types/script-vision';
 import { translateToEnglish } from './translate-to-english';
 
-const COMFYUI_URL = 'http://comfyui:8000/prompt';
-const COMFYUI_OUTPUT_URL = 'http://comfyui:8000/view';
+const COMFYUI_URL = 'http://localhost:8000/prompt';
+const COMFYUI_OUTPUT_URL = 'http://localhost:8000/view';
 
 // The ComfyUI workflow template for sketches.
 const COMFYUI_WORKFLOW_TEMPLATE = {
@@ -266,7 +266,7 @@ export async function getImagesFromComfyUI(promptText: string): Promise<string> 
     return new Promise((resolve, reject) => {
         const checkStatus = async () => {
             try {
-                const historyResponse = await fetch(`http://comfyui:8000/history/${promptId}`);
+                const historyResponse = await fetch(`http://localhost:8000/history/${promptId}`);
                 if (!historyResponse.ok) {
                     // If history is not yet available, wait and retry
                     if (historyResponse.status === 404) {
