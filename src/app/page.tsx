@@ -14,8 +14,9 @@ import { generateStoryboardSketches } from '@/ai/flows/generate-storyboard-sketc
 import { InsertSketchModal } from '@/components/app/insert-sketch-modal';
 import { DownloadModal } from '@/components/app/download-modal';
 import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
 
+// Make TypeScript aware of the globally available `saveAs` function from the CDN
+declare const saveAs: (blob: Blob, filename: string) => void;
 
 export default function HomePage() {
   const [isExtractingScenes, setIsExtractingScenes] = useState(false);
