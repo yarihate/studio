@@ -26,7 +26,9 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Clapperboard, FileUp, FileCheck } from 'lucide-react';
 
 const FormSchema = z.object({
-  file: z.instanceof(File).refine(file => file.size > 0, 'Please upload a file.'),
+  file: z.any()
+    .refine((val) => val instanceof File, 'Необходимо загрузить файл.')
+    .refine(file => file.size > 0, 'Файл не может быть пустым.'),
 });
 
 type ScriptFormProps = {
@@ -49,7 +51,7 @@ export function ScriptForm({ onSubmit, isLoading }: ScriptFormProps) {
     const file = event.target.files?.[0];
     if (file) {
       setFileName(file.name);
-      form.setValue('file', file);
+      form.setValue('file', file, { shouldValidate: true });
     }
   };
 
