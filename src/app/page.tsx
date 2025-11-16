@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { handleExtractScenesFromFile, handleRegenerateSketch, handleGenerateSketches, handleGenerateMediumDetailedImages, handleGenerateDetailedImages as handleGenerateHighlyDetailedImages } from '@/app/actions';
 import { AppHeader } from '@/components/app/header';
 import { ScenesSidebar } from '@/components/app/scenes-sidebar';
@@ -8,12 +8,14 @@ import { ScriptForm } from '@/components/app/script-form';
 import { StoryboardTabs } from '@/components/app/storyboard-tabs';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
-import type { Scene, Sketch, SketchViewMode, DownloadContext, DownloadOptions, ImageStyle, MediumDetailedImage, DetailedImage } from '@/types/script-vision';
+import type { Scene, Sketch, SketchViewMode, DownloadContext, DownloadOptions, ImageStyle, MediumDetailedImage, DetailedImage, SketchImage } from '@/types/script-vision';
 import { InsertSketchModal } from '@/components/app/insert-sketch-modal';
 import { DownloadModal } from '@/components/app/download-modal';
 import JSZip from 'jszip';
 
 declare const saveAs: (blob: Blob, filename: string) => void;
+
+type ActiveTab = 'sketches' | 'medium-detailed' | 'highly-detailed';
 
 export default function HomePage() {
   const [isExtractingScenes, setIsExtractingScenes] = useState(false);
@@ -24,7 +26,7 @@ export default function HomePage() {
   const [mediumDetailedImages, setMediumDetailedImages] = useState<Sketch[]>([]); // Use Sketch type to store by scene
   const [highlyDetailedImages, setHighlyDetailedImages] = useState<Sketch[]>([]); // Use Sketch type to store by scene
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
-  const [selectedSketchUrls, setSelectedSketchUrls] = useState<string[]>([]);
+  const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([]);
   
   const [isInsertModalOpen, setIsInsertModalOpen] = useState(false);
   const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null);
@@ -37,8 +39,32 @@ export default function HomePage() {
   const [downloadContext, setDownloadContext] = useState<DownloadContext>({ type: 'project' });
   const [isDownloading, setIsDownloading] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<ActiveTab>('sketches');
+
 
   const { toast } = useToast();
+  
+  const currentImages: SketchImage[] = useMemo(() => {
+    const sceneId = selectedSceneId;
+    if (!sceneId) return [];
+    
+    switch (activeTab) {
+      case 'sketches':
+        return sketches.find(s => s.sceneId === sceneId)?.images || [];
+      case 'medium-detailed':
+        return mediumDetailedImages.find(s => s.sceneId === sceneId)?.images || [];
+      case 'highly-detailed':
+        return highlyDetailedImages.find(s => s.sceneId === sceneId)?.images || [];
+      default:
+        return [];
+    }
+  }, [selectedSceneId, activeTab, sketches, mediumDetailedImages, highlyDetailedImages]);
+
+  const areAllSelected = useMemo(() => {
+    if (currentImages.length === 0) return false;
+    return currentImages.every(img => selectedImageUrls.includes(img.imageUrl));
+  }, [currentImages, selectedImageUrls]);
+
 
   const handleScriptSubmit = async (file: File) => {
     setIsExtractingScenes(true);
@@ -46,7 +72,7 @@ export default function HomePage() {
     setSketches([]);
     setMediumDetailedImages([]);
     setHighlyDetailedImages([]);
-    setSelectedSketchUrls([]);
+    setSelectedImageUrls([]);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -268,8 +294,8 @@ const handleGenerateHighlyDetailedImagesForScene = async (scene: Scene) => {
     }
   };
 
-  const handleSelectSketch = (imageUrl: string) => {
-    setSelectedSketchUrls(prev => {
+  const handleSelectImage = (imageUrl: string) => {
+    setSelectedImageUrls(prev => {
       if (prev.includes(imageUrl)) {
         return prev.filter(url => url !== imageUrl);
       }
@@ -277,30 +303,13 @@ const handleGenerateHighlyDetailedImagesForScene = async (scene: Scene) => {
     });
   };
 
-  const handleDownloadSelectedSketches = () => {
-    if (selectedSketchUrls.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'No sketches selected',
-        description: 'Please select one or more sketches to download.',
-      });
-      return;
+  const handleSelectAll = () => {
+    const allImageUrls = currentImages.map(img => img.imageUrl);
+    if (areAllSelected) {
+      setSelectedImageUrls(prev => prev.filter(url => !allImageUrls.includes(url)));
+    } else {
+      setSelectedImageUrls(prev => [...new Set([...prev, ...allImageUrls])]);
     }
-    
-    selectedSketchUrls.forEach((url, index) => {
-      const link = document.createElement('a');
-      link.href = url;
-      const sceneId = sketches.find(s => s.images.some(i => i.imageUrl === url))?.sceneId;
-      link.download = `scene-${sceneId}-sketch-${index + 1}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
-
-    toast({
-      title: 'Download Started',
-      description: `Downloading ${selectedSketchUrls.length} sketch(es).`,
-    });
   };
 
   const handleInitiateDownload = (context: DownloadContext) => {
@@ -318,48 +327,64 @@ const handleGenerateHighlyDetailedImagesForScene = async (scene: Scene) => {
     });
 
     try {
-      const sceneIdsToDownload = downloadContext.type === 'scene' ? [downloadContext.sceneId] : scenes.map(s => s.scene_id);
-      
-      const imagesToDownload: { url: string; filename: string }[] = [];
+      let imagesToDownload: { url: string; filename: string }[] = [];
+      let zipName = 'ScriptVision_Project.zip';
 
-      if (options.content.includes('sketches')) {
-        sketches
-          .filter(s => sceneIdsToDownload.includes(s.sceneId))
-          .forEach(s => {
-            s.images.forEach((img, index) => {
-              imagesToDownload.push({
-                url: img.imageUrl,
-                filename: `Scene_${s.sceneId}/Sketches/Sketch_${index + 1}.${options.format}`,
+      if (downloadContext.type === 'selected') {
+        zipName = `ScriptVision_Selection.zip`;
+        imagesToDownload = downloadContext.imageUrls.map((url, index) => {
+          const sceneId = sketches.find(s => s.images.some(i => i.imageUrl === url))?.sceneId || 
+                          mediumDetailedImages.find(s => s.images.some(i => i.imageUrl === url))?.sceneId ||
+                          highlyDetailedImages.find(s => s.images.some(i => i.imageUrl === url))?.sceneId || 'unknown';
+          return {
+            url: url,
+            filename: `Scene_${sceneId}/Selection_${index + 1}.${options.format}`,
+          };
+        });
+      } else {
+        const sceneIdsToDownload = downloadContext.type === 'scene' ? [downloadContext.sceneId] : scenes.map(s => s.scene_id);
+        zipName = downloadContext.type === 'scene' ? `Scene_${downloadContext.sceneId}.zip` : 'ScriptVision_Project.zip';
+        
+        if (options.content.includes('sketches')) {
+          sketches
+            .filter(s => sceneIdsToDownload.includes(s.sceneId))
+            .forEach(s => {
+              s.images.forEach((img, index) => {
+                imagesToDownload.push({
+                  url: img.imageUrl,
+                  filename: `Scene_${s.sceneId}/Sketches/Sketch_${index + 1}.${options.format}`,
+                });
               });
             });
-          });
+        }
+  
+        if (options.content.includes('medium-detailed')) {
+          mediumDetailedImages
+            .filter(d => sceneIdsToDownload.includes(d.sceneId))
+            .forEach((imgCollection, collIndex) => {
+              imgCollection.images.forEach((img, index) => {
+                   imagesToDownload.push({
+                      url: img.imageUrl,
+                      filename: `Scene_${imgCollection.sceneId}/MediumDetailed/MediumDetailed_${index + 1}.${options.format}`,
+                  });
+              });
+            });
+        }
+  
+        if (options.content.includes('highly-detailed')) {
+          highlyDetailedImages
+            .filter(d => sceneIdsToDownload.includes(d.sceneId))
+            .forEach((imgCollection, collIndex) => {
+              imgCollection.images.forEach((img, index) => {
+                   imagesToDownload.push({
+                      url: img.imageUrl,
+                      filename: `Scene_${imgCollection.sceneId}/HighlyDetailed/HighlyDetailed_${index + 1}.${options.format}`,
+                  });
+              });
+            });
+        }
       }
 
-      if (options.content.includes('medium-detailed')) {
-        mediumDetailedImages
-          .filter(d => sceneIdsToDownload.includes(d.sceneId))
-          .forEach((imgCollection, collIndex) => {
-            imgCollection.images.forEach((img, index) => {
-                 imagesToDownload.push({
-                    url: img.imageUrl,
-                    filename: `Scene_${imgCollection.sceneId}/MediumDetailed/MediumDetailed_${index + 1}.${options.format}`,
-                });
-            });
-          });
-      }
-
-      if (options.content.includes('highly-detailed')) {
-        highlyDetailedImages
-          .filter(d => sceneIdsToDownload.includes(d.sceneId))
-          .forEach((imgCollection, collIndex) => {
-            imgCollection.images.forEach((img, index) => {
-                 imagesToDownload.push({
-                    url: img.imageUrl,
-                    filename: `Scene_${imgCollection.sceneId}/HighlyDetailed/HighlyDetailed_${index + 1}.${options.format}`,
-                });
-            });
-          });
-      }
       
       if (imagesToDownload.length === 0) {
         toast({ variant: 'destructive', title: 'Nothing to Download', description: 'No images of the selected type were found.' });
@@ -377,7 +402,7 @@ const handleGenerateHighlyDetailedImagesForScene = async (scene: Scene) => {
 
         await Promise.all(imagePromises);
         const zipBlob = await zip.generateAsync({ type: 'blob' });
-        saveAs(zipBlob, `${downloadContext.type === 'scene' ? `Scene_${downloadContext.sceneId}` : 'ScriptVision_Project'}.zip`);
+        saveAs(zipBlob, zipName);
       } else {
         imagesToDownload.forEach(img => {
            const filename = img.filename.replace(/\.zip/i, `.${options.format}`);
@@ -439,6 +464,7 @@ const handleGenerateHighlyDetailedImagesForScene = async (scene: Scene) => {
         onClose={() => setIsDownloadModalOpen(false)}
         onSubmit={handleConfirmDownload}
         isLoading={isDownloading}
+        context={downloadContext}
       />
       <SidebarProvider>
         <ScenesSidebar
@@ -446,7 +472,7 @@ const handleGenerateHighlyDetailedImagesForScene = async (scene: Scene) => {
           selectedSceneId={selectedSceneId}
           onSelectScene={(id) => {
             setSelectedSceneId(id);
-            setSelectedSketchUrls([]); // Reset selection when changing scenes
+            setSelectedImageUrls([]); // Reset selection when changing scenes
           }}
           onDownloadProject={() => handleInitiateDownload({ type: 'project' })}
         />
@@ -471,15 +497,21 @@ const handleGenerateHighlyDetailedImagesForScene = async (scene: Scene) => {
               onGenerateHighlyDetailed={() => selectedScene && handleGenerateHighlyDetailedImagesForScene(selectedScene)}
               onRegenerate={handleRegenerate}
               onInsertSketch={handleOpenInsertModal}
-              selectedSketchUrls={selectedSketchUrls}
-              onSelectSketch={handleSelectSketch}
-              onDownloadSelectedSketches={handleDownloadSelectedSketches}
+              selectedImageUrls={selectedImageUrls}
+              onSelectImage={handleSelectImage}
+              onSelectAll={handleSelectAll}
+              areAllSelected={areAllSelected}
+              onDownloadSelected={() => handleInitiateDownload({ type: 'selected', imageUrls: selectedImageUrls })}
               onDownloadScene={() => selectedScene && handleInitiateDownload({ type: 'scene', sceneId: selectedScene.scene_id })}
               onCommentChange={handleCommentChange}
               sketchViewMode={sketchViewMode}
               onSketchViewModeChange={setSketchViewMode}
               selectedImageStyle={selectedImageStyle}
               onImageStyleChange={setSelectedImageStyle}
+              onTabChange={(tab) => {
+                setActiveTab(tab as ActiveTab);
+                setSelectedImageUrls([]); // Reset selection on tab change
+              }}
             />
           </main>
         </SidebarInset>

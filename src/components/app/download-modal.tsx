@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,13 +14,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DownloadCloud, Loader2 } from 'lucide-react';
-import type { DownloadOptions, DownloadFormat, DownloadContent } from '@/types/script-vision';
+import type { DownloadOptions, DownloadFormat, DownloadContent, DownloadContext } from '@/types/script-vision';
 
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (options: DownloadOptions) => void;
   isLoading: boolean;
+  context: DownloadContext;
 }
 
 export function DownloadModal({
@@ -28,9 +29,19 @@ export function DownloadModal({
   onClose,
   onSubmit,
   isLoading,
+  context,
 }: DownloadModalProps) {
   const [format, setFormat] = useState<DownloadFormat>('zip');
   const [content, setContent] = useState<DownloadContent[]>(['sketches', 'medium-detailed', 'highly-detailed']);
+  const isSelectionDownload = context.type === 'selected';
+  
+  useEffect(() => {
+    // When downloading a selection, the content is already defined, so we don't need to ask.
+    // We can pre-select all and disable the checkboxes.
+    if (isSelectionDownload) {
+      setContent(['sketches', 'medium-detailed', 'highly-detailed']);
+    }
+  }, [isSelectionDownload, isOpen]);
 
   const handleContentChange = (item: DownloadContent) => {
     setContent(prev =>
@@ -41,7 +52,7 @@ export function DownloadModal({
   };
   
   const handleSubmit = () => {
-    if (content.length > 0) {
+    if (isSelectionDownload || content.length > 0) {
       onSubmit({ format, content });
     }
   };
@@ -52,41 +63,45 @@ export function DownloadModal({
         <DialogHeader>
           <DialogTitle>Download Options</DialogTitle>
           <DialogDescription>
-            Choose what you want to download and in which format.
+            {isSelectionDownload
+              ? `Downloading ${context.imageUrls.length} selected image(s). Please choose a format.`
+              : 'Choose what you want to download and in which format.'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
           
           {/* Content Selection */}
-          <div className="space-y-3">
-            <Label className="font-semibold">Content</Label>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="content-sketches"
-                  checked={content.includes('sketches')}
-                  onCheckedChange={() => handleContentChange('sketches')}
-                />
-                <Label htmlFor="content-sketches" className="font-normal">Sketches</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="content-medium-detailed"
-                  checked={content.includes('medium-detailed')}
-                  onCheckedChange={() => handleContentChange('medium-detailed')}
-                />
-                <Label htmlFor="content-medium-detailed" className="font-normal">Medium Detailed</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="content-highly-detailed"
-                  checked={content.includes('highly-detailed')}
-                  onCheckedChange={() => handleContentChange('highly-detailed')}
-                />
-                <Label htmlFor="content-highly-detailed" className="font-normal">Highly Detailed</Label>
+          {!isSelectionDownload && (
+            <div className="space-y-3">
+              <Label className="font-semibold">Content</Label>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="content-sketches"
+                    checked={content.includes('sketches')}
+                    onCheckedChange={() => handleContentChange('sketches')}
+                  />
+                  <Label htmlFor="content-sketches" className="font-normal">Sketches</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="content-medium-detailed"
+                    checked={content.includes('medium-detailed')}
+                    onCheckedChange={() => handleContentChange('medium-detailed')}
+                  />
+                  <Label htmlFor="content-medium-detailed" className="font-normal">Medium Detailed</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="content-highly-detailed"
+                    checked={content.includes('highly-detailed')}
+                    onCheckedChange={() => handleContentChange('highly-detailed')}
+                  />
+                  <Label htmlFor="content-highly-detailed" className="font-normal">Highly Detailed</Label>
+                </div>
               </div>
             </div>
-          </div>
+          )}
           
           {/* Format Selection */}
           <div className="space-y-3">
@@ -119,7 +134,7 @@ export function DownloadModal({
           <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={isLoading || content.length === 0}>
+          <Button type="submit" onClick={handleSubmit} disabled={isLoading || (!isSelectionDownload && content.length === 0)}>
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (

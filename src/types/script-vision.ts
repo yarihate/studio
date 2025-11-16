@@ -59,4 +59,5 @@ export interface DownloadOptions {
 
 export type DownloadContext = 
   | { type: 'project' }
-  | { type: 'scene'; sceneId: string };
+  | { type: 'scene'; sceneId: string }
+  | { type: 'selected', imageUrls: string[] };

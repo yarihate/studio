@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw, MessageSquare, DownloadCloud, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Download, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw, MessageSquare, DownloadCloud, Image as ImageIcon, Sparkles, CheckSquare, Square } from 'lucide-react';
 import type {
   Scene,
   Sketch,
@@ -52,15 +52,18 @@ type StoryboardTabsProps = {
   onGenerateHighlyDetailed: () => void;
   onRegenerate: (sceneId: string, imageIndex: number, newPrompt: string) => void;
   onInsertSketch: (index: number) => void;
-  selectedSketchUrls: string[];
-  onSelectSketch: (imageUrl: string) => void;
-  onDownloadSelectedSketches: () => void;
+  selectedImageUrls: string[];
+  onSelectImage: (imageUrl: string) => void;
+  onSelectAll: () => void;
+  areAllSelected: boolean;
+  onDownloadSelected: () => void;
   onDownloadScene: () => void;
   onCommentChange: (sceneId: string, subsceneId: string | null, text: string) => void;
   sketchViewMode: SketchViewMode;
   onSketchViewModeChange: (mode: SketchViewMode) => void;
   selectedImageStyle: ImageStyle;
   onImageStyleChange: (style: ImageStyle) => void;
+  onTabChange: (tab: string) => void;
 };
 
 
@@ -99,7 +102,7 @@ const InsertButton = ({ onClick }: { onClick: () => void }) => (
   </div>
 );
 
-const ImageCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, onSelectSketch, editingState, handleRegenerateClick, toggleEdit, cardType = 'sketch' }: any) => {
+const ImageCard = ({ scene, image, index, isRegenerating, selectedImageUrls, onSelectImage, editingState, handleRegenerateClick, toggleEdit, cardType = 'sketch' }: any) => {
     const isCurrentlyRegenerating = isRegenerating === image.imageUrl;
     const subsceneId = scene.subscenes[index]?.subscene_id || `Вставка ${index}`;
     return (
@@ -125,8 +128,8 @@ const ImageCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, on
                     />
                     <div className="absolute top-2 right-2">
                         <Checkbox
-                            checked={selectedSketchUrls.includes(image.imageUrl)}
-                            onCheckedChange={() => onSelectSketch(image.imageUrl)}
+                            checked={selectedImageUrls.includes(image.imageUrl)}
+                            onCheckedChange={() => onSelectImage(image.imageUrl)}
                             className="h-6 w-6 border-white bg-black/20 data-[state=checked]:bg-primary"
                             disabled={isCurrentlyRegenerating}
                         />
@@ -206,15 +209,18 @@ export function StoryboardTabs({
   onGenerateHighlyDetailed,
   onRegenerate,
   onInsertSketch,
-  selectedSketchUrls,
-  onSelectSketch,
-  onDownloadSelectedSketches,
+  selectedImageUrls,
+  onSelectImage,
+  onSelectAll,
+  areAllSelected,
+  onDownloadSelected,
   onDownloadScene,
   onCommentChange,
   sketchViewMode,
   onSketchViewModeChange,
   selectedImageStyle,
   onImageStyleChange,
+  onTabChange,
 }: StoryboardTabsProps) {
   if (!scene) {
     return (
@@ -224,7 +230,6 @@ export function StoryboardTabs({
     );
   }
 
-  const [activeTab, setActiveTab] = React.useState('sketches');
   const [editingState, setEditingState] = React.useState<{imageUrl: string; prompt: string} | null>(null);
 
   const toggleEdit = (imageUrl: string, currentPrompt: string, isEditing = false) => {
@@ -245,6 +250,12 @@ export function StoryboardTabs({
   const hasSketches = sketch && sketch.images.length > 0;
   const hasMediumDetailedImages = mediumDetailedImages && mediumDetailedImages.images.length > 0;
   const hasHighlyDetailedImages = highlyDetailedImages && highlyDetailedImages.images.length > 0;
+  const hasAnyImagesOnTab = (tab: string) => {
+    if (tab === 'sketches') return hasSketches;
+    if (tab === 'medium-detailed') return hasMediumDetailedImages;
+    if (tab === 'highly-detailed') return hasHighlyDetailedImages;
+    return false;
+  }
   const canDownloadScene = hasSketches || hasMediumDetailedImages || hasHighlyDetailedImages;
 
 
@@ -329,7 +340,7 @@ export function StoryboardTabs({
           </div>
         </CardContent>
       </Card>
-      <Tabs defaultValue="sketches" onValueChange={setActiveTab}>
+      <Tabs defaultValue="sketches" onValueChange={onTabChange}>
         <div className="flex items-center justify-between">
             <TabsList>
                 <TabsTrigger value="sketches">Наброски</TabsTrigger>
@@ -337,15 +348,49 @@ export function StoryboardTabs({
                 <TabsTrigger value="highly-detailed">Высокая детализация</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                 {(hasSketches || hasMediumDetailedImages || hasHighlyDetailedImages) ? (
-                    <>
-                        <ViewSwitcher mode={sketchViewMode} onModeChange={onSketchViewModeChange} />
-                        <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
-                            <Download className="mr-2 h-4 w-4" />
-                            Скачать выбранные
-                        </Button>
-                    </>
-                ) : null}
+                <TabsContent value="sketches" className="flex items-center gap-2 m-0">
+                    {hasSketches && (
+                        <>
+                            <Button onClick={onSelectAll} variant="outline" size="sm">
+                                {areAllSelected ? <CheckSquare className="mr-2 h-4 w-4" /> : <Square className="mr-2 h-4 w-4" />}
+                                {areAllSelected ? 'Снять выделение' : 'Выбрать все'}
+                            </Button>
+                            <Button onClick={onDownloadSelected} disabled={selectedImageUrls.length === 0} variant="outline" size="sm">
+                                <Download className="mr-2 h-4 w-4" />
+                                Скачать выбранные
+                            </Button>
+                        </>
+                    )}
+                </TabsContent>
+                <TabsContent value="medium-detailed" className="flex items-center gap-2 m-0">
+                    {hasMediumDetailedImages && (
+                        <>
+                            <Button onClick={onSelectAll} variant="outline" size="sm">
+                                {areAllSelected ? <CheckSquare className="mr-2 h-4 w-4" /> : <Square className="mr-2 h-4 w-4" />}
+                                {areAllSelected ? 'Снять выделение' : 'Выбрать все'}
+                            </Button>
+                            <Button onClick={onDownloadSelected} disabled={selectedImageUrls.length === 0} variant="outline" size="sm">
+                                <Download className="mr-2 h-4 w-4" />
+                                Скачать выбранные
+                            </Button>
+                        </>
+                    )}
+                </TabsContent>
+                <TabsContent value="highly-detailed" className="flex items-center gap-2 m-0">
+                    {hasHighlyDetailedImages && (
+                        <>
+                            <Button onClick={onSelectAll} variant="outline" size="sm">
+                                {areAllSelected ? <CheckSquare className="mr-2 h-4 w-4" /> : <Square className="mr-2 h-4 w-4" />}
+                                {areAllSelected ? 'Снять выделение' : 'Выбрать все'}
+                            </Button>
+                            <Button onClick={onDownloadSelected} disabled={selectedImageUrls.length === 0} variant="outline" size="sm">
+                                <Download className="mr-2 h-4 w-4" />
+                                Скачать выбранные
+                            </Button>
+                        </>
+                    )}
+                </TabsContent>
+                <ViewSwitcher mode={sketchViewMode} onModeChange={onSketchViewModeChange} />
             </div>
         </div>
 
@@ -369,8 +414,8 @@ export function StoryboardTabs({
                                         image={image}
                                         index={index}
                                         isRegenerating={isRegenerating}
-                                        selectedSketchUrls={selectedSketchUrls}
-                                        onSelectSketch={onSelectSketch}
+                                        selectedImageUrls={selectedImageUrls}
+                                        onSelectImage={onSelectImage}
                                         editingState={editingState}
                                         handleRegenerateClick={handleRegenerateClick}
                                         toggleEdit={toggleEdit}
@@ -397,8 +442,8 @@ export function StoryboardTabs({
                             image={image}
                             index={index}
                             isRegenerating={isRegenerating}
-                            selectedSketchUrls={selectedSketchUrls}
-                            onSelectSketch={onSelectSketch}
+                            selectedImageUrls={selectedImageUrls}
+                            onSelectImage={onSelectImage}
                             editingState={editingState}
                             handleRegenerateClick={handleRegenerateClick}
                             toggleEdit={toggleEdit}
@@ -443,8 +488,8 @@ export function StoryboardTabs({
                                         image={image}
                                         index={index}
                                         isRegenerating={isRegenerating}
-                                        selectedSketchUrls={selectedSketchUrls}
-                                        onSelectSketch={onSelectSketch}
+                                        selectedImageUrls={selectedImageUrls}
+                                        onSelectImage={onSelectImage}
                                         editingState={null}
                                         handleRegenerateClick={() => {}}
                                         toggleEdit={() => {}}
@@ -465,8 +510,8 @@ export function StoryboardTabs({
                         image={image}
                         index={index}
                         isRegenerating={isRegenerating}
-                        selectedSketchUrls={selectedSketchUrls}
-                        onSelectSketch={onSelectSketch}
+                        selectedImageUrls={selectedImageUrls}
+                        onSelectImage={onSelectImage}
                         editingState={null}
                         handleRegenerateClick={() => {}}
                         toggleEdit={() => {}}
@@ -510,8 +555,8 @@ export function StoryboardTabs({
                                             image={image}
                                             index={index}
                                             isRegenerating={isRegenerating}
-                                            selectedSketchUrls={selectedSketchUrls}
-                                            onSelectSketch={onSelectSketch}
+                                            selectedImageUrls={selectedImageUrls}
+                                            onSelectImage={onSelectImage}
                                             editingState={null}
                                             handleRegenerateClick={() => {}}
                                             toggleEdit={() => {}}
@@ -532,8 +577,8 @@ export function StoryboardTabs({
                             image={image}
                             index={index}
                             isRegenerating={isRegenerating}
-                            selectedSketchUrls={selectedSketchUrls}
-                            onSelectSketch={onSelectSketch}
+                            selectedImageUrls={selectedImageUrls}
+                            onSelectImage={onSelectImage}
                             editingState={null}
                             handleRegenerateClick={() => {}}
                             toggleEdit={() => {}}
