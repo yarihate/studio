@@ -34,6 +34,24 @@ This project requires a single development server for the Next.js frontend. The 
 
 ---
 
+## Running with Docker
+
+You can also run the application using Docker and Docker Compose. This is the recommended way to run the entire stack, including the AI services, once they are added.
+
+1.  **Build and Run the Container:**
+    Open a terminal in the project root and run:
+    ```bash
+    docker-compose up -d --build
+    ```
+    This command will build the Docker image for the application and start it in the background. Your web application will be available at `http://localhost:9002`.
+
+2.  **To stop the application**, run:
+    ```bash
+    docker-compose down
+    ```
+
+---
+
 ## Запуск проекта на локальной машине
 
 Чтобы запустить этот проект на вашей локальной машине, выполните следующие шаги.
@@ -61,3 +79,21 @@ npm install
     ```
 
     Ваше веб-приложение будет доступно по адресу `http://localhost:9002`.
+
+---
+
+## Запуск с помощью Docker
+
+Вы также можете запустить приложение с помощью Docker и Docker Compose. Это рекомендуемый способ для запуска всего стека, включая AI-сервисы, после их добавления.
+
+1.  **Сборка и запуск контейнера:**
+    Откройте терминал в корневой папке проекта и выполните:
+    ```bash
+    docker-compose up -d --build
+    ```
+    Эта команда соберет Docker-образ для приложения и запустит его в фоновом режиме. Ваше веб-приложение будет доступно по адресу `http://localhost:9002`.
+
+2.  **Чтобы остановить приложение**, выполните:
+    ```bash
+    docker-compose down
+    ```
