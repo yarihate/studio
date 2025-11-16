@@ -23,12 +23,14 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    entrypoint: ["sh", "-c"]
     command: >
-      sh -c "
+      "
         ollama serve &
         sleep 5 &&
         ollama pull hf.co/unsloth/Qwen3-14B-GGUF:Q5_K_M &&
         ollama pull hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M &&
+        echo 'Models downloaded. Ollama is running.' &&
         wait
       "
 
