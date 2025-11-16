@@ -11,7 +11,7 @@ services:
       - /app/node_modules
       - /app/.next
     env_file:
-      - .env.docker
+      - .env
     command: npm run dev
     depends_on:
       ollama:
@@ -52,8 +52,6 @@ services:
     volumes:
       - comfyui_models:/app/models
       - ./comfyui/extra-model-paths.yml:/app/extra_model_paths.yml
-    environment:
-      - HF_TOKEN=${HF_TOKEN}
     deploy:
       resources:
         reservations:
