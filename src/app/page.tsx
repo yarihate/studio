@@ -8,7 +8,7 @@ import { ScriptForm } from '@/components/app/script-form';
 import { StoryboardTabs } from '@/components/app/storyboard-tabs';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
-import type { DetailedImage, Scene, Sketch, SketchViewMode, DownloadContext, DownloadOptions } from '@/types/script-vision';
+import type { DetailedImage, Scene, Sketch, SketchViewMode, DownloadContext, DownloadOptions, ImageStyle } from '@/types/script-vision';
 import { InsertSketchModal } from '@/components/app/insert-sketch-modal';
 import { DownloadModal } from '@/components/app/download-modal';
 import JSZip from 'jszip';
@@ -30,6 +30,7 @@ export default function HomePage() {
   const [isInserting, setIsInserting] = useState(false);
 
   const [sketchViewMode, setSketchViewMode] = useState<SketchViewMode>('carousel');
+  const [selectedImageStyle, setSelectedImageStyle] = useState<ImageStyle>(null);
 
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [downloadContext, setDownloadContext] = useState<DownloadContext>({ type: 'project' });
@@ -107,11 +108,11 @@ export default function HomePage() {
     }
 };
 
-const handleGenerateDetailedImagesForScene = async (scene: Scene) => {
+const handleGenerateDetailedImagesForScene = async (scene: Scene, style: ImageStyle) => {
     setIsGenerating(prev => ({ ...prev, detailed: [...prev.detailed, scene.scene_id] }));
     
     try {
-        const result = await handleGenerateDetailedImages(scene);
+        const result = await handleGenerateDetailedImages(scene, style);
 
         if ('error' in result) {
             throw new Error(result.error);
@@ -412,10 +413,11 @@ const handleGenerateDetailedImagesForScene = async (scene: Scene) => {
                 (img) => img.sceneId === selectedSceneId
               )}
               isLoadingSketches={isGenerating.sketches.includes(selectedScene?.scene_id ?? '-1')}
-              isLoadingDetailed={isGenerating.detailed.includes(selectedScene?.scene_id ?? '-1')}
+              isLoadingDetailed={isGenerating.detailed.includes(selectedScene?.scene_id ?? '-1'
+              )}
               isRegenerating={isRegeneratingSketch}
               onGenerateSketch={() => selectedScene && handleGenerateSketchesForScene(selectedScene)}
-              onGenerateDetailed={() => selectedScene && handleGenerateDetailedImagesForScene(selectedScene)}
+              onGenerateDetailed={(style) => selectedScene && handleGenerateDetailedImagesForScene(selectedScene, style)}
               onRegenerate={handleRegenerate}
               selectedSketchUrls={selectedSketchUrls}
               onSelectSketch={handleSelectSketch}
@@ -425,6 +427,8 @@ const handleGenerateDetailedImagesForScene = async (scene: Scene) => {
               onCommentChange={handleCommentChange}
               sketchViewMode={sketchViewMode}
               onSketchViewModeChange={setSketchViewMode}
+              selectedImageStyle={selectedImageStyle}
+              onImageStyleChange={setSelectedImageStyle}
             />
           </main>
         </SidebarInset>

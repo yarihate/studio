@@ -46,6 +46,7 @@ export interface Animation {
 }
 
 export type SketchViewMode = 'carousel' | 'grid';
+export type ImageStyle = 'Hyper-Realistic Natural' | 'Editorial / Fashion Cinematic' | 'Filmic / 35mm Aesthetic' | null;
 
 export type DownloadFormat = 'png' | 'jpg' | 'zip';
 export type DownloadContent = 'sketches' | 'detailed';

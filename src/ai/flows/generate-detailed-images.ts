@@ -6,7 +6,7 @@
  * - GenerateDetailedImagesInput - The input type for the generateDetailedImages function.
  * - GenerateDetailedImagesOutput - The return type for the generateDetailedImages function.
  */
-import type { SketchImage } from '@/types/script-vision';
+import type { SketchImage, ImageStyle } from '@/types/script-vision';
 import { translateToEnglish } from './translate-to-english';
 
 const COMFYUI_URL = 'http://comfyui:8000/prompt';
@@ -124,6 +124,13 @@ const COMFYUI_WORKFLOW_TEMPLATE = {
   }
 };
 
+const STYLE_SNIPPETS: Record<NonNullable<ImageStyle>, string> = {
+  'Hyper-Realistic Natural': 'hyper-realistic portrait photography, natural lighting, high dynamic range, lifelike skin texture, detailed eyes and hair, minimal color grading, soft shadows, shallow depth of field, shot on high-end mirrorless camera',
+  'Editorial / Fashion Cinematic': 'fashion editorial photography, cinematic soft lighting, glossy highlights, refined color palette, subtle professional retouching, high-end wardrobe styling, medium-format camera depth and clarity',
+  'Filmic / 35mm Aesthetic': 'cinematic 35mm film aesthetic, soft ambient lighting, subtle film grain, warm tones, analog texture',
+};
+
+
 export interface ShotDetail {
   description: string;
   location: string;
@@ -132,6 +139,7 @@ export interface ShotDetail {
 
 export interface GenerateDetailedImagesInput {
   shotDetails: ShotDetail[];
+  style: ImageStyle;
 }
 
 export interface GenerateDetailedImagesOutput {
@@ -221,7 +229,7 @@ async function getImagesFromComfyUI(promptText: string): Promise<string> {
 export async function generateDetailedImages(
   input: GenerateDetailedImagesInput
 ): Promise<GenerateDetailedImagesOutput> {
-  console.log('Generating detailed images for shots via ComfyUI:', input.shotDetails);
+  console.log('Generating detailed images for shots via ComfyUI:', input);
 
   const constructedPrompts = input.shotDetails.map(detail => {
     let prompt = `${detail.description}, in ${detail.location}`;
@@ -234,8 +242,9 @@ export async function generateDetailedImages(
   const translatedPromises = constructedPrompts.map(desc => translateToEnglish(desc));
   const translatedDescriptions = await Promise.all(translatedPromises);
 
-  // Add more photorealistic keywords
-  const finalPrompts = translatedDescriptions.map(d => `photograph, cinematic, 8k, ultra-realistic, ${d}`);
+  const styleSnippet = input.style ? STYLE_SNIPPETS[input.style] : 'photograph, cinematic, 8k, ultra-realistic';
+  
+  const finalPrompts = translatedDescriptions.map(d => `${styleSnippet}, ${d}`);
 
   const imagePromises = finalPrompts.map(async (prompt, index) => {
     const imageUrl = await getImagesFromComfyUI(prompt);

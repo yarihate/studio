@@ -6,7 +6,7 @@ import { extractScenesFromScript } from '@/ai/flows/extract-scenes-from-script';
 import { regenerateSketch } from '@/ai/flows/regenerate-sketch';
 import { generateSketches } from '@/ai/flows/generate-sketches';
 import { generateDetailedImages } from '@/ai/flows/generate-detailed-images';
-import type { Scene, SketchImage, DetailedImage } from '@/types/script-vision';
+import type { Scene, SketchImage, DetailedImage, ImageStyle } from '@/types/script-vision';
 
 async function getScriptContent(file: File): Promise<string> {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -66,7 +66,7 @@ export async function handleGenerateSketches(scene: Scene): Promise<SketchImage[
     }
 }
 
-export async function handleGenerateDetailedImages(scene: Scene): Promise<DetailedImage[] | { error: string }> {
+export async function handleGenerateDetailedImages(scene: Scene, style: ImageStyle): Promise<DetailedImage[] | { error: string }> {
     try {
         const shotDetails = scene.subscenes.map(s => ({
             description: s.description,
@@ -74,7 +74,7 @@ export async function handleGenerateDetailedImages(scene: Scene): Promise<Detail
             props: s.props,
         }));
 
-        const { images } = await generateDetailedImages({ shotDetails });
+        const { images } = await generateDetailedImages({ shotDetails, style });
 
         // The output of generateDetailedImages is SketchImage[], we map it to DetailedImage[]
         const detailedImages: DetailedImage[] = images.map((img, index) => ({

@@ -24,15 +24,17 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw, MessageSquare, DownloadCloud, Image as ImageIcon } from 'lucide-react';
+import { Download, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw, MessageSquare, DownloadCloud, Image as ImageIcon, Sparkles } from 'lucide-react';
 import type {
   Scene,
   Sketch,
   SketchViewMode,
+  ImageStyle,
 } from '@/types/script-vision';
 import { Badge } from '../ui/badge';
 import { Textarea } from '../ui/textarea';
 import { ViewSwitcher } from '../ui/view-switcher';
+import { cn } from '@/lib/utils';
 
 type StoryboardTabsProps = {
   scene: Scene | undefined;
@@ -42,7 +44,7 @@ type StoryboardTabsProps = {
   isLoadingDetailed: boolean;
   isRegenerating: string | null;
   onGenerateSketch: () => void;
-  onGenerateDetailed: () => void;
+  onGenerateDetailed: (style: ImageStyle) => void;
   onRegenerate: (sceneId: string, imageIndex: number, newPrompt: string) => void;
   onInsertSketch: (index: number) => void;
   selectedSketchUrls: string[];
@@ -52,6 +54,8 @@ type StoryboardTabsProps = {
   onCommentChange: (sceneId: string, subsceneId: string | null, text: string) => void;
   sketchViewMode: SketchViewMode;
   onSketchViewModeChange: (mode: SketchViewMode) => void;
+  selectedImageStyle: ImageStyle;
+  onImageStyleChange: (style: ImageStyle) => void;
 };
 
 
@@ -185,6 +189,8 @@ export function StoryboardTabs({
   onCommentChange,
   sketchViewMode,
   onSketchViewModeChange,
+  selectedImageStyle,
+  onImageStyleChange,
 }: StoryboardTabsProps) {
   if (!scene) {
     return (
@@ -216,6 +222,9 @@ export function StoryboardTabs({
   const hasDetailedImages = detailedImages && detailedImages.images.length > 0;
   const canDownloadScene = hasSketches || hasDetailedImages;
 
+  const styleOptions: NonNullable<ImageStyle>[] = ['Hyper-Realistic Natural', 'Editorial / Fashion Cinematic', 'Filmic / 35mm Aesthetic'];
+
+
   const LoadingPlaceholder = ({ title, description }: { title: string; description: string }) => (
     <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
         <Loader2 className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
@@ -224,15 +233,14 @@ export function StoryboardTabs({
     </div>
   );
 
-  const EmptyState = ({ title, description, buttonText, onClick, icon: Icon }: { title: string; description: string; buttonText: string; onClick: () => void; icon: React.ElementType }) => (
+  const EmptyState = ({ title, description, children }: { title: string; description: string; children: React.ReactNode }) => (
     <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-12 text-center">
-        <Icon className="mx-auto h-12 w-12 text-muted-foreground" />
+        <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">{title}</h3>
         <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-        <Button className="mt-4" onClick={onClick}>
-            <Plus className="mr-2 h-4 w-4" />
-            {buttonText}
-        </Button>
+        <div className="mt-6">
+            {children}
+        </div>
     </div>
   );
 
@@ -305,7 +313,7 @@ export function StoryboardTabs({
                 <TabsTrigger value="detailed">Детализированные</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                 {(activeTab === 'sketches' && hasSketches) || (activeTab === 'detailed' && hasDetailedImages) && (
+                 {(activeTab === 'sketches' && hasSketches) || (activeTab === 'detailed' && hasDetailedImages) ? (
                     <>
                         <ViewSwitcher mode={sketchViewMode} onModeChange={onSketchViewModeChange} />
                         <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
@@ -313,7 +321,7 @@ export function StoryboardTabs({
                             Скачать выбранные
                         </Button>
                     </>
-                )}
+                ) : null}
             </div>
         </div>
 
@@ -377,13 +385,15 @@ export function StoryboardTabs({
               )}
             </>
           ) : (
-            <EmptyState 
+             <EmptyState 
                 title="Наброски еще не созданы"
                 description="Нажмите кнопку, чтобы создать AI-наброски для этой сцены."
-                buttonText="Создать наброски"
-                onClick={onGenerateSketch}
-                icon={Wand}
-            />
+             >
+                <Button onClick={onGenerateSketch}>
+                    <Wand className="mr-2 h-4 w-4" />
+                    Создать наброски
+                </Button>
+             </EmptyState>
           )}
         </TabsContent>
 
@@ -411,11 +421,26 @@ export function StoryboardTabs({
           ) : (
             <EmptyState 
                 title="Детализированных изображений нет"
-                description="Нажмите кнопку, чтобы сгенерировать фотореалистичные изображения."
-                buttonText="Создать детализированные изображения"
-                onClick={onGenerateDetailed}
-                icon={ImageIcon}
-            />
+                description="Выберите стиль и нажмите кнопку, чтобы сгенерировать фотореалистичные изображения."
+            >
+                <div className="flex flex-col items-center gap-4">
+                     <div className="flex flex-wrap justify-center gap-2">
+                        {styleOptions.map(style => (
+                            <Button 
+                                key={style}
+                                variant={selectedImageStyle === style ? 'default' : 'secondary'}
+                                onClick={() => onImageStyleChange(style)}
+                            >
+                                {style}
+                            </Button>
+                        ))}
+                    </div>
+                    <Button onClick={() => onGenerateDetailed(selectedImageStyle)} size="lg">
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Создать детализированные изображения
+                    </Button>
+                </div>
+            </EmptyState>
           )}
         </TabsContent>
       </Tabs>
