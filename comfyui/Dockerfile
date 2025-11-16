@@ -1,12 +1,22 @@
-# Use the official ComfyUI image as the base
-FROM comfyanonymous/comfyui:latest
+# Use an official NVIDIA CUDA image as a base
+FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
 
-# Install wget
-RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+# Set environment variables to avoid interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Set the working directory
+# Install wget, git, and Python
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    git \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up the working directory
 WORKDIR /app
 
-# Copy dependency files and install custom nodes
-COPY ./requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# Clone the ComfyUI repository
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
