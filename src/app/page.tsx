@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Animation, DetailedImage, Scene, Sketch, SketchImage } from '@/types/script-vision';
 import { generateStoryboardSketches } from '@/ai/flows/generate-storyboard-sketches';
+import { InsertSketchModal } from '@/components/app/insert-sketch-modal';
 
 export default function HomePage() {
   const [isExtractingScenes, setIsExtractingScenes] = useState(false);
@@ -25,6 +26,11 @@ export default function HomePage() {
     number[]
   >([]);
   const [selectedSketchUrls, setSelectedSketchUrls] = useState<string[]>([]);
+  
+  const [isInsertModalOpen, setIsInsertModalOpen] = useState(false);
+  const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null);
+  const [isInserting, setIsInserting] = useState(false);
+
 
   const { toast } = useToast();
 
@@ -149,6 +155,52 @@ export default function HomePage() {
     }
   };
 
+  const handleOpenInsertModal = (index: number) => {
+    setInsertAtIndex(index);
+    setIsInsertModalOpen(true);
+  };
+  
+  const handleInsertSketch = async (prompt: string) => {
+    if (insertAtIndex === null || !selectedSceneId) return;
+    
+    setIsInserting(true);
+    
+    try {
+        const result = await handleRegenerateSketch(prompt);
+        if ('error' in result) {
+            throw new Error(result.error);
+        }
+
+        setSketches(prevSketches => {
+            return prevSketches.map(sketch => {
+                if (sketch.sceneId === selectedSceneId) {
+                    const updatedImages = [...sketch.images];
+                    updatedImages.splice(insertAtIndex, 0, result);
+                    return { ...sketch, images: updatedImages };
+                }
+                return sketch;
+            });
+        });
+
+        toast({
+            title: 'Sketch Inserted',
+            description: 'A new sketch has been added to the storyboard.',
+        });
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        toast({
+            variant: 'destructive',
+            title: 'Error Inserting Sketch',
+            description: errorMessage,
+        });
+    } finally {
+        setIsInserting(false);
+        setIsInsertModalOpen(false);
+        setInsertAtIndex(null);
+    }
+  };
+
 
   const handleEnhanceSketch = (sceneId: string) => {
     const placeholder = PlaceHolderImages.find((img) => img.id === 'detailed-view');
@@ -256,41 +308,50 @@ export default function HomePage() {
 
 
   return (
-    <SidebarProvider>
-      <ScenesSidebar
-        scenes={scenes}
-        selectedSceneId={selectedSceneId}
-        onSelectScene={(id) => {
-          setSelectedSceneId(id);
-          setSelectedSketchUrls([]); // Reset selection when changing scenes
-        }}
+    <>
+      <InsertSketchModal
+        isOpen={isInsertModalOpen}
+        onClose={() => setIsInsertModalOpen(false)}
+        onSubmit={handleInsertSketch}
+        isLoading={isInserting}
       />
-      <SidebarInset>
-        <AppHeader />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
-          <StoryboardTabs
-            scene={selectedScene}
-            sketch={sketches.find((s) => s.sceneId === selectedSceneId)}
-            detailedImages={detailedImages.filter(
-              (img) => img.sceneId === selectedSceneId
-            )}
-            animations={animations.filter(
-              (anim) => anim.sceneId === selectedSceneId
-            )}
-            onEnhance={handleEnhanceSketch}
-            onSelectForAnimation={handleSelectDetailedImage}
-            selectedForAnimation={selectedDetailedImageIds}
-            onAnimate={handleGenerateAnimation}
-            isLoading={isGeneratingSketches.includes(selectedScene?.scene_id ?? '-1')}
-            isRegenerating={isRegeneratingSketch}
-            onGenerateSketch={() => selectedScene && handleGenerateSketchForScene(selectedScene)}
-            onRegenerate={handleRegenerate}
-            selectedSketchUrls={selectedSketchUrls}
-            onSelectSketch={handleSelectSketch}
-            onDownloadSelectedSketches={handleDownloadSelectedSketches}
-          />
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+      <SidebarProvider>
+        <ScenesSidebar
+          scenes={scenes}
+          selectedSceneId={selectedSceneId}
+          onSelectScene={(id) => {
+            setSelectedSceneId(id);
+            setSelectedSketchUrls([]); // Reset selection when changing scenes
+          }}
+        />
+        <SidebarInset>
+          <AppHeader />
+          <main className="flex-1 overflow-auto p-4 md:p-6">
+            <StoryboardTabs
+              scene={selectedScene}
+              sketch={sketches.find((s) => s.sceneId === selectedSceneId)}
+              detailedImages={detailedImages.filter(
+                (img) => img.sceneId === selectedSceneId
+              )}
+              animations={animations.filter(
+                (anim) => anim.sceneId === selectedSceneId
+              )}
+              onEnhance={handleEnhanceSketch}
+              onSelectForAnimation={handleSelectDetailedImage}
+              selectedForAnimation={selectedDetailedImageIds}
+              onAnimate={handleGenerateAnimation}
+              isLoading={isGeneratingSketches.includes(selectedScene?.scene_id ?? '-1')}
+              isRegenerating={isRegeneratingSketch}
+              onGenerateSketch={() => selectedScene && handleGenerateSketchForScene(selectedScene)}
+              onRegenerate={handleRegenerate}
+              selectedSketchUrls={selectedSketchUrls}
+              onSelectSketch={handleSelectSketch}
+              onDownloadSelectedSketches={handleDownloadSelectedSketches}
+              onInsertSketch={handleOpenInsertModal}
+            />
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </>
   );
 }

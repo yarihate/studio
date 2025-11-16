@@ -47,6 +47,7 @@ type StoryboardTabsProps = {
   isRegenerating: string | null;
   onGenerateSketch: () => void;
   onRegenerate: (sceneId: string, imageIndex: number, newPrompt: string) => void;
+  onInsertSketch: (index: number) => void;
   selectedSketchUrls: string[];
   onSelectSketch: (imageUrl: string) => void;
   onDownloadSelectedSketches: () => void;
@@ -74,6 +75,21 @@ const DetailItem = ({ label, value, icon: Icon }: { label: string; value?: strin
     );
 };
 
+const InsertButton = ({ onClick }: { onClick: () => void }) => (
+  <div className="flex-shrink-0 flex items-center justify-center p-1 group-hover/carousel:opacity-100 opacity-0 transition-opacity">
+    <Button
+      variant="outline"
+      size="icon"
+      className="rounded-full h-10 w-10"
+      onClick={onClick}
+    >
+      <Plus className="h-5 w-5" />
+      <span className="sr-only">Insert sketch</span>
+    </Button>
+  </div>
+);
+
+
 export function StoryboardTabs({
   scene,
   sketch,
@@ -87,6 +103,7 @@ export function StoryboardTabs({
   isRegenerating,
   onGenerateSketch,
   onRegenerate,
+  onInsertSketch,
   selectedSketchUrls,
   onSelectSketch,
   onDownloadSelectedSketches,
@@ -189,70 +206,78 @@ export function StoryboardTabs({
                 </p>
             </div>
           ) : sketch && sketch.images.length > 0 ? (
-             <Carousel className="w-full">
-                <CarouselContent>
+             <Carousel className="w-full group/carousel">
+                <CarouselContent className="-ml-2">
+                    <CarouselItem className="pl-2 basis-auto">
+                      <InsertButton onClick={() => onInsertSketch(0)} />
+                    </CarouselItem>
                     {sketch.images.map((image, index) => {
                         const isCurrentlyRegenerating = isRegenerating === image.imageUrl;
                         return (
-                        <CarouselItem key={image.imageUrl + index} className="md:basis-1/2 lg:basis-1/3">
-                            <div className="p-1">
-                                <Card className="overflow-hidden">
-                                    <CardHeader className="p-2 text-center bg-muted">
-                                        <p className="text-xs font-semibold truncate">Под-сцена {scene.subscenes[index]?.subscene_id}</p>
-                                    </CardHeader>
-                                    <CardContent className="p-0">
-                                        <div className="relative group aspect-square">
-                                            {isCurrentlyRegenerating && (
-                                                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60">
-                                                    <Loader2 className="h-10 w-10 animate-spin text-white" />
-                                                    <p className="mt-2 text-sm text-white">Перегенерация...</p>
-                                                </div>
-                                            )}
-                                            <Image
-                                                src={image.imageUrl}
-                                                alt={`Набросок для под-сцены ${scene.subscenes[index]?.subscene_id}`}
-                                                width={480}
-                                                height={480}
-                                                className={`h-full w-full object-cover ${isCurrentlyRegenerating ? 'blur-sm' : ''}`}
-                                                data-ai-hint="storyboard sketch"
-                                            />
-                                            <div className="absolute top-2 right-2">
-                                                <Checkbox
-                                                    checked={selectedSketchUrls.includes(image.imageUrl)}
-                                                    onCheckedChange={() => onSelectSketch(image.imageUrl)}
-                                                    className="h-6 w-6 border-white bg-black/20 data-[state=checked]:bg-primary"
-                                                    disabled={isCurrentlyRegenerating}
-                                                />
-                                            </div>
+                        <React.Fragment key={image.imageUrl + index}>
+                          <CarouselItem className="pl-2 md:basis-1/2 lg:basis-1/3">
+                              <div className="p-1">
+                                  <Card className="overflow-hidden">
+                                      <CardHeader className="p-2 text-center bg-muted">
+                                          <p className="text-xs font-semibold truncate">Под-сцена {scene.subscenes[index]?.subscene_id || `Вставка ${index}`}</p>
+                                      </CardHeader>
+                                      <CardContent className="p-0">
+                                          <div className="relative group aspect-square">
+                                              {isCurrentlyRegenerating && (
+                                                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60">
+                                                      <Loader2 className="h-10 w-10 animate-spin text-white" />
+                                                      <p className="mt-2 text-sm text-white">Перегенерация...</p>
+                                                  </div>
+                                              )}
+                                              <Image
+                                                  src={image.imageUrl}
+                                                  alt={`Набросок для под-сцены ${scene.subscenes[index]?.subscene_id}`}
+                                                  width={480}
+                                                  height={480}
+                                                  className={`h-full w-full object-cover ${isCurrentlyRegenerating ? 'blur-sm' : ''}`}
+                                                  data-ai-hint="storyboard sketch"
+                                              />
+                                              <div className="absolute top-2 right-2">
+                                                  <Checkbox
+                                                      checked={selectedSketchUrls.includes(image.imageUrl)}
+                                                      onCheckedChange={() => onSelectSketch(image.imageUrl)}
+                                                      className="h-6 w-6 border-white bg-black/20 data-[state=checked]:bg-primary"
+                                                      disabled={isCurrentlyRegenerating}
+                                                  />
+                                              </div>
+                                          </div>
+                                      </CardContent>
+                                      {editingState?.imageUrl === image.imageUrl && (
+                                        <div className="p-4 space-y-2 border-t">
+                                          <Textarea 
+                                            value={editingState.prompt}
+                                            onChange={(e) => setEditingState({...editingState, prompt: e.target.value})}
+                                            rows={4} 
+                                            placeholder="Введите новый промпт..."
+                                          />
+                                          <Button size="sm" className="w-full" onClick={() => handleRegenerateClick(index)} disabled={isCurrentlyRegenerating}>
+                                              {isCurrentlyRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                              Перегенерировать
+                                          </Button>
                                         </div>
-                                    </CardContent>
-                                    {editingState?.imageUrl === image.imageUrl && (
-                                      <div className="p-4 space-y-2 border-t">
-                                        <Textarea 
-                                          value={editingState.prompt}
-                                          onChange={(e) => setEditingState({...editingState, prompt: e.target.value})}
-                                          rows={4} 
-                                          placeholder="Введите новый промпт..."
-                                        />
-                                        <Button size="sm" className="w-full" onClick={() => handleRegenerateClick(index)} disabled={isCurrentlyRegenerating}>
-                                            {isCurrentlyRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                            Перегенерировать
-                                        </Button>
-                                      </div>
-                                    )}
-                                    <CardFooter className="p-4 grid grid-cols-2 gap-2">
-                                        <Button onClick={() => toggleEdit(image.imageUrl, image.prompt)} variant="secondary" className="w-full" disabled={isCurrentlyRegenerating}>
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            {editingState?.imageUrl === image.imageUrl ? 'Закрыть' : 'Редактировать'}
-                                        </Button>
-                                        <Button onClick={() => onEnhance(scene.scene_id)} className="w-full" disabled={isCurrentlyRegenerating}>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Улучшить
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            </div>
-                        </CarouselItem>
+                                      )}
+                                      <CardFooter className="p-4 grid grid-cols-2 gap-2">
+                                          <Button onClick={() => toggleEdit(image.imageUrl, image.prompt)} variant="secondary" className="w-full" disabled={isCurrentlyRegenerating}>
+                                              <Edit className="mr-2 h-4 w-4" />
+                                              {editingState?.imageUrl === image.imageUrl ? 'Закрыть' : 'Редактировать'}
+                                          </Button>
+                                          <Button onClick={() => onEnhance(scene.scene_id)} className="w-full" disabled={isCurrentlyRegenerating}>
+                                              <Sparkles className="mr-2 h-4 w-4" />
+                                              Улучшить
+                                          </Button>
+                                      </CardFooter>
+                                  </Card>
+                              </div>
+                          </CarouselItem>
+                          <CarouselItem className="pl-2 basis-auto">
+                            <InsertButton onClick={() => onInsertSketch(index + 1)} />
+                          </CarouselItem>
+                        </React.Fragment>
                     )})}
                 </CarouselContent>
                 <CarouselPrevious />
