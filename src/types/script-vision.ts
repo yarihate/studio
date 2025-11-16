@@ -39,17 +39,18 @@ export interface DetailedImage {
   prompt: string;
 }
 
-export interface Animation {
+export interface MediumDetailedImage {
   id: number;
   sceneId: string;
   imageUrl: string;
+  prompt: string;
 }
 
 export type SketchViewMode = 'carousel' | 'grid';
 export type ImageStyle = 'Hyper-Realistic Natural' | 'Editorial / Fashion Cinematic' | 'Filmic / 35mm Aesthetic' | null;
 
 export type DownloadFormat = 'png' | 'jpg' | 'zip';
-export type DownloadContent = 'sketches' | 'detailed';
+export type DownloadContent = 'sketches' | 'medium-detailed' | 'highly-detailed';
 
 export interface DownloadOptions {
   format: DownloadFormat;

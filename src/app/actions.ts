@@ -6,7 +6,8 @@ import { extractScenesFromScript } from '@/ai/flows/extract-scenes-from-script';
 import { regenerateSketch } from '@/ai/flows/regenerate-sketch';
 import { generateSketches } from '@/ai/flows/generate-sketches';
 import { generateDetailedImages } from '@/ai/flows/generate-detailed-images';
-import type { Scene, SketchImage, DetailedImage, ImageStyle } from '@/types/script-vision';
+import { generateMediumDetailedImages } from '@/ai/flows/generate-medium-detailed-images';
+import type { Scene, SketchImage, DetailedImage, MediumDetailedImage, ImageStyle } from '@/types/script-vision';
 
 async function getScriptContent(file: File): Promise<string> {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -66,6 +67,33 @@ export async function handleGenerateSketches(scene: Scene): Promise<SketchImage[
     }
 }
 
+export async function handleGenerateMediumDetailedImages(scene: Scene): Promise<MediumDetailedImage[] | { error: string }> {
+    try {
+        const shotDetails = scene.subscenes.map(s => ({
+            description: s.description,
+            location: scene.location.place,
+            props: s.props,
+        }));
+
+        const { images } = await generateMediumDetailedImages({ shotDetails });
+
+        const mediumDetailedImages: MediumDetailedImage[] = images.map((img, index) => ({
+            id: Date.now() + index,
+            sceneId: scene.scene_id,
+            imageUrl: img.imageUrl,
+            prompt: img.prompt,
+        }));
+
+        return mediumDetailedImages;
+
+    } catch (error) {
+        console.error('Error generating medium detailed images:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        return { error: `Failed to generate medium detailed images: ${errorMessage}` };
+    }
+}
+
+
 export async function handleGenerateDetailedImages(scene: Scene, style: ImageStyle): Promise<DetailedImage[] | { error: string }> {
     try {
         const shotDetails = scene.subscenes.map(s => ({
@@ -76,9 +104,8 @@ export async function handleGenerateDetailedImages(scene: Scene, style: ImageSty
 
         const { images } = await generateDetailedImages({ shotDetails, style });
 
-        // The output of generateDetailedImages is SketchImage[], we map it to DetailedImage[]
         const detailedImages: DetailedImage[] = images.map((img, index) => ({
-            id: Date.now() + index, // Assign a unique ID
+            id: Date.now() + index,
             sceneId: scene.scene_id,
             imageUrl: img.imageUrl,
             prompt: img.prompt,

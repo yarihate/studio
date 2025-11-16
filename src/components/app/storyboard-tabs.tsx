@@ -39,12 +39,14 @@ import { cn } from '@/lib/utils';
 type StoryboardTabsProps = {
   scene: Scene | undefined;
   sketch: Sketch | undefined;
-  detailedImages: Sketch | undefined;
+  mediumDetailedImages: Sketch | undefined;
+  highlyDetailedImages: Sketch | undefined;
   isLoadingSketches: boolean;
-  isLoadingDetailed: boolean;
+  isLoadingMediumDetailed: boolean;
+  isLoadingHighlyDetailed: boolean;
   isRegenerating: string | null;
   onGenerateSketch: () => void;
-  onGenerateDetailed: (style: ImageStyle) => void;
+  onGenerateMediumDetailed: () => void;
   onRegenerate: (sceneId: string, imageIndex: number, newPrompt: string) => void;
   onInsertSketch: (index: number) => void;
   selectedSketchUrls: string[];
@@ -155,7 +157,7 @@ const ImageCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, on
                         onClick={() => {
                              const link = document.createElement('a');
                              link.href = image.imageUrl;
-                             link.download = `scene-${scene.scene_id}-detailed-${index}.png`;
+                             link.download = `scene-${scene.scene_id}-${cardType}-${index}.png`;
                              document.body.appendChild(link);
                              link.click();
                              document.body.removeChild(link);
@@ -174,12 +176,14 @@ const ImageCard = ({ scene, image, index, isRegenerating, selectedSketchUrls, on
 export function StoryboardTabs({
   scene,
   sketch,
-  detailedImages,
+  mediumDetailedImages,
+  highlyDetailedImages,
   isLoadingSketches,
-  isLoadingDetailed,
+  isLoadingMediumDetailed,
+  isLoadingHighlyDetailed,
   isRegenerating,
   onGenerateSketch,
-  onGenerateDetailed,
+  onGenerateMediumDetailed,
   onRegenerate,
   onInsertSketch,
   selectedSketchUrls,
@@ -219,10 +223,9 @@ export function StoryboardTabs({
   };
 
   const hasSketches = sketch && sketch.images.length > 0;
-  const hasDetailedImages = detailedImages && detailedImages.images.length > 0;
-  const canDownloadScene = hasSketches || hasDetailedImages;
-
-  const styleOptions: NonNullable<ImageStyle>[] = ['Hyper-Realistic Natural', 'Editorial / Fashion Cinematic', 'Filmic / 35mm Aesthetic'];
+  const hasMediumDetailedImages = mediumDetailedImages && mediumDetailedImages.images.length > 0;
+  const hasHighlyDetailedImages = highlyDetailedImages && highlyDetailedImages.images.length > 0;
+  const canDownloadScene = hasSketches || hasMediumDetailedImages || hasHighlyDetailedImages;
 
 
   const LoadingPlaceholder = ({ title, description }: { title: string; description: string }) => (
@@ -310,10 +313,11 @@ export function StoryboardTabs({
         <div className="flex items-center justify-between">
             <TabsList>
                 <TabsTrigger value="sketches">Наброски</TabsTrigger>
-                <TabsTrigger value="detailed">Детализированные</TabsTrigger>
+                <TabsTrigger value="medium-detailed">Средняя детализация</TabsTrigger>
+                <TabsTrigger value="highly-detailed">Высокая детализация</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                 {(activeTab === 'sketches' && hasSketches) || (activeTab === 'detailed' && hasDetailedImages) ? (
+                 {(activeTab !== 'highly-detailed' && (hasSketches || hasMediumDetailedImages)) ? (
                     <>
                         <ViewSwitcher mode={sketchViewMode} onModeChange={onSketchViewModeChange} />
                         <Button onClick={onDownloadSelectedSketches} disabled={selectedSketchUrls.length === 0} variant="outline">
@@ -397,12 +401,12 @@ export function StoryboardTabs({
           )}
         </TabsContent>
 
-        <TabsContent value="detailed" className="mt-4">
-           {isLoadingDetailed ? (
-             <LoadingPlaceholder title="Генерация детализированных изображений..." description="ИИ создает фотореалистичные кадры, это может занять время." />
-          ) : hasDetailedImages ? (
+        <TabsContent value="medium-detailed" className="mt-4">
+           {isLoadingMediumDetailed ? (
+             <LoadingPlaceholder title="Генерация изображений..." description="ИИ создает кадры средней детализации, это может занять время." />
+          ) : hasMediumDetailedImages ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {detailedImages.images.map((image, index) => (
+                {mediumDetailedImages.images.map((image, index) => (
                     <ImageCard
                         key={image.imageUrl + index}
                         scene={scene}
@@ -411,37 +415,38 @@ export function StoryboardTabs({
                         isRegenerating={isRegenerating}
                         selectedSketchUrls={selectedSketchUrls}
                         onSelectSketch={onSelectSketch}
-                        editingState={null} // No editing for detailed images
+                        editingState={null}
                         handleRegenerateClick={() => {}}
                         toggleEdit={() => {}}
-                        cardType="detailed"
+                        cardType="medium-detailed"
                     />
                 ))}
              </div>
           ) : (
             <EmptyState 
-                title="Детализированных изображений нет"
-                description="Выберите стиль и нажмите кнопку, чтобы сгенерировать фотореалистичные изображения."
+                title="Изображений средней детализации нет"
+                description="Нажмите кнопку, чтобы сгенерировать изображения для этой сцены."
             >
                 <div className="flex flex-col items-center gap-4">
-                     <div className="flex flex-wrap justify-center gap-2">
-                        {styleOptions.map(style => (
-                            <Button 
-                                key={style}
-                                variant={selectedImageStyle === style ? 'default' : 'secondary'}
-                                onClick={() => onImageStyleChange(style)}
-                            >
-                                {style}
-                            </Button>
-                        ))}
-                    </div>
-                    <Button onClick={() => onGenerateDetailed(selectedImageStyle)} size="lg">
+                    <Button onClick={() => onGenerateMediumDetailed()} size="lg">
                         <Sparkles className="mr-2 h-4 w-4" />
-                        Создать детализированные изображения
+                        Создать изображения
                     </Button>
                 </div>
             </EmptyState>
           )}
+        </TabsContent>
+
+        <TabsContent value="highly-detailed" className="mt-4">
+            <EmptyState
+                title="Скоро здесь появится высокая детализация"
+                description="Эта функция находится в разработке. Вы сможете генерировать изображения с максимальной детализацией."
+            >
+               <Button disabled>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    В разработке
+                </Button>
+            </EmptyState>
         </TabsContent>
       </Tabs>
     </div>

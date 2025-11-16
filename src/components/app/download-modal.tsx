@@ -30,7 +30,7 @@ export function DownloadModal({
   isLoading,
 }: DownloadModalProps) {
   const [format, setFormat] = useState<DownloadFormat>('zip');
-  const [content, setContent] = useState<DownloadContent[]>(['sketches', 'detailed']);
+  const [content, setContent] = useState<DownloadContent[]>(['sketches', 'medium-detailed']);
 
   const handleContentChange = (item: DownloadContent) => {
     setContent(prev =>
@@ -71,11 +71,20 @@ export function DownloadModal({
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="content-detailed"
-                  checked={content.includes('detailed')}
-                  onCheckedChange={() => handleContentChange('detailed')}
+                  id="content-medium-detailed"
+                  checked={content.includes('medium-detailed')}
+                  onCheckedChange={() => handleContentChange('medium-detailed')}
                 />
-                <Label htmlFor="content-detailed" className="font-normal">Detailed Images</Label>
+                <Label htmlFor="content-medium-detailed" className="font-normal">Medium Detailed</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="content-highly-detailed"
+                  checked={content.includes('highly-detailed')}
+                  onCheckedChange={() => handleContentChange('highly-detailed')}
+                  disabled // Disabled until implemented
+                />
+                <Label htmlFor="content-highly-detailed" className="font-normal text-muted-foreground">Highly Detailed</Label>
               </div>
             </div>
           </div>

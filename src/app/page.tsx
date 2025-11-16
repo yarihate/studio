@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { handleExtractScenesFromFile, handleRegenerateSketch, handleGenerateSketches, handleGenerateDetailedImages } from '@/app/actions';
+import { handleExtractScenesFromFile, handleRegenerateSketch, handleGenerateSketches, handleGenerateMediumDetailedImages } from '@/app/actions';
 import { AppHeader } from '@/components/app/header';
 import { ScenesSidebar } from '@/components/app/scenes-sidebar';
 import { ScriptForm } from '@/components/app/script-form';
 import { StoryboardTabs } from '@/components/app/storyboard-tabs';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
-import type { DetailedImage, Scene, Sketch, SketchViewMode, DownloadContext, DownloadOptions, ImageStyle } from '@/types/script-vision';
+import type { Scene, Sketch, SketchViewMode, DownloadContext, DownloadOptions, ImageStyle, MediumDetailedImage } from '@/types/script-vision';
 import { InsertSketchModal } from '@/components/app/insert-sketch-modal';
 import { DownloadModal } from '@/components/app/download-modal';
 import JSZip from 'jszip';
@@ -17,11 +17,12 @@ declare const saveAs: (blob: Blob, filename: string) => void;
 
 export default function HomePage() {
   const [isExtractingScenes, setIsExtractingScenes] = useState(false);
-  const [isGenerating, setIsGenerating] = useState<{ sketches: string[], detailed: string[] }>({ sketches: [], detailed: [] });
+  const [isGenerating, setIsGenerating] = useState<{ sketches: string[], mediumDetailed: string[], highlyDetailed: string[] }>({ sketches: [], mediumDetailed: [], highlyDetailed: [] });
   const [isRegeneratingSketch, setIsRegeneratingSketch] = useState<string | null>(null); // imageUrl
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [sketches, setSketches] = useState<Sketch[]>([]);
-  const [detailedImages, setDetailedImages] = useState<Sketch[]>([]); // Use Sketch type to store by scene
+  const [mediumDetailedImages, setMediumDetailedImages] = useState<Sketch[]>([]); // Use Sketch type to store by scene
+  const [highlyDetailedImages, setHighlyDetailedImages] = useState<Sketch[]>([]); // Use Sketch type to store by scene
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [selectedSketchUrls, setSelectedSketchUrls] = useState<string[]>([]);
   
@@ -43,7 +44,8 @@ export default function HomePage() {
     setIsExtractingScenes(true);
     setScenes([]);
     setSketches([]);
-    setDetailedImages([]);
+    setMediumDetailedImages([]);
+    setHighlyDetailedImages([]);
     setSelectedSketchUrls([]);
 
     const formData = new FormData();
@@ -108,36 +110,35 @@ export default function HomePage() {
     }
 };
 
-const handleGenerateDetailedImagesForScene = async (scene: Scene, style: ImageStyle) => {
-    setIsGenerating(prev => ({ ...prev, detailed: [...prev.detailed, scene.scene_id] }));
+const handleGenerateMediumDetailedImagesForScene = async (scene: Scene) => {
+    setIsGenerating(prev => ({ ...prev, mediumDetailed: [...prev.mediumDetailed, scene.scene_id] }));
     
     try {
-        const result = await handleGenerateDetailedImages(scene, style);
+        const result = await handleGenerateMediumDetailedImages(scene);
 
         if ('error' in result) {
             throw new Error(result.error);
         }
         
-        // We receive DetailedImage[], but store as Sketch[] for consistency
-        const newDetailedImages: Sketch = { 
+        const newMediumDetailedImages: Sketch = { 
             sceneId: scene.scene_id, 
             images: result.map(img => ({ imageUrl: img.imageUrl, prompt: img.prompt }))
         };
 
-        setDetailedImages(prev => {
+        setMediumDetailedImages(prev => {
             const otherImages = prev.filter(s => s.sceneId !== scene.scene_id);
-            return [...otherImages, newDetailedImages];
+            return [...otherImages, newMediumDetailedImages];
         });
 
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
         toast({
             variant: 'destructive',
-            title: 'Error Generating Detailed Images',
+            title: 'Error Generating Medium Detailed Images',
             description: errorMessage,
         });
     } finally {
-        setIsGenerating(prev => ({ ...prev, detailed: prev.detailed.filter(id => id !== scene.scene_id) }));
+        setIsGenerating(prev => ({ ...prev, mediumDetailed: prev.mediumDetailed.filter(id => id !== scene.scene_id) }));
     }
 };
 
@@ -301,14 +302,14 @@ const handleGenerateDetailedImagesForScene = async (scene: Scene, style: ImageSt
           });
       }
 
-      if (options.content.includes('detailed')) {
-        detailedImages
+      if (options.content.includes('medium-detailed')) {
+        mediumDetailedImages
           .filter(d => sceneIdsToDownload.includes(d.sceneId))
           .forEach((imgCollection, collIndex) => {
             imgCollection.images.forEach((img, index) => {
                  imagesToDownload.push({
                     url: img.imageUrl,
-                    filename: `Scene_${imgCollection.sceneId}/Detailed/Detailed_${index + 1}.${options.format}`,
+                    filename: `Scene_${imgCollection.sceneId}/MediumDetailed/MediumDetailed_${index + 1}.${options.format}`,
                 });
             });
           });
@@ -409,21 +410,24 @@ const handleGenerateDetailedImagesForScene = async (scene: Scene, style: ImageSt
             <StoryboardTabs
               scene={selectedScene}
               sketch={sketches.find((s) => s.sceneId === selectedSceneId)}
-              detailedImages={detailedImages.find(
+              mediumDetailedImages={mediumDetailedImages.find(
+                (img) => img.sceneId === selectedSceneId
+              )}
+              highlyDetailedImages={highlyDetailedImages.find(
                 (img) => img.sceneId === selectedSceneId
               )}
               isLoadingSketches={isGenerating.sketches.includes(selectedScene?.scene_id ?? '-1')}
-              isLoadingDetailed={isGenerating.detailed.includes(selectedScene?.scene_id ?? '-1'
-              )}
+              isLoadingMediumDetailed={isGenerating.mediumDetailed.includes(selectedScene?.scene_id ?? '-1')}
+              isLoadingHighlyDetailed={isGenerating.highlyDetailed.includes(selectedScene?.scene_id ?? '-1')}
               isRegenerating={isRegeneratingSketch}
               onGenerateSketch={() => selectedScene && handleGenerateSketchesForScene(selectedScene)}
-              onGenerateDetailed={(style) => selectedScene && handleGenerateDetailedImagesForScene(selectedScene, style)}
+              onGenerateMediumDetailed={() => selectedScene && handleGenerateMediumDetailedImagesForScene(selectedScene)}
               onRegenerate={handleRegenerate}
+              onInsertSketch={handleOpenInsertModal}
               selectedSketchUrls={selectedSketchUrls}
               onSelectSketch={handleSelectSketch}
               onDownloadSelectedSketches={handleDownloadSelectedSketches}
               onDownloadScene={() => selectedScene && handleInitiateDownload({ type: 'scene', sceneId: selectedScene.scene_id })}
-              onInsertSketch={handleOpenInsertModal}
               onCommentChange={handleCommentChange}
               sketchViewMode={sketchViewMode}
               onSketchViewModeChange={setSketchViewMode}
