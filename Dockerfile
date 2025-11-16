@@ -1,20 +1,15 @@
-# Use an official Node.js runtime as a parent image
-FROM node:20
+# 1. Base Image
+FROM node:20-slim
 
-# Set the working directory in the container
+# 2. Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
+# 3. Copy package files and install dependencies
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the application code
+# 4. Copy the rest of the application code
 COPY . .
 
-# Make port 9002 available to the world outside this container
-EXPOSE 9002
-
-# Define the command to run your app
+# 5. Set the default command
 CMD ["npm", "run", "dev"]

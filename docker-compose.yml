@@ -12,7 +12,17 @@ services:
       - .:/app
       - /app/node_modules
       - /app/.next
-    environment:
-      - NODE_ENV=development
-      - OLLAMA_URL=${OLLAMA_URL}
+    env_file:
+      - .env.docker
     command: npm run dev
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  ollama_data:
