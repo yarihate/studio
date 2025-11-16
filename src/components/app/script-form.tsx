@@ -26,14 +26,9 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Clapperboard, FileUp, FileCheck } from 'lucide-react';
 
 const FormSchema = z.object({
-  file: z
-    .any()
-    .refine((val) => val instanceof FileList && val.length > 0, {
-      message: 'Необходимо загрузить файл.',
-    })
-    .refine((val) => val?.[0]?.size > 0, {
-      message: 'Файл не может быть пустым.',
-    }),
+  file: z.any().refine((files) => files instanceof FileList && files.length > 0, {
+    message: 'Необходимо загрузить файл.',
+  }),
 });
 
 type ScriptFormProps = {
@@ -44,30 +39,15 @@ type ScriptFormProps = {
 export function ScriptForm({ onSubmit, isLoading }: ScriptFormProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
-    defaultValues: {
-      file: undefined,
-    },
   });
 
-  const fileRef = form.register('file');
   const [fileName, setFileName] = React.useState<string | null>(null);
 
-  const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      // We pass the FileList to the form
-      form.setValue('file', event.target.files, { shouldValidate: true });
-    } else {
-      setFileName(null);
-      form.setValue('file', null, { shouldValidate: true });
-    }
-  };
-
   function onFormSubmit(data: z.infer<typeof FormSchema>) {
-    // We extract the File from the FileList before submitting
     const file = data.file[0];
-    onSubmit(file);
+    if (file) {
+      onSubmit(file);
+    }
   }
 
   return (
@@ -88,7 +68,7 @@ export function ScriptForm({ onSubmit, isLoading }: ScriptFormProps) {
               <FormField
                 control={form.control}
                 name="file"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel className="sr-only">Script File</FormLabel>
                     <FormControl>
@@ -97,8 +77,16 @@ export function ScriptForm({ onSubmit, isLoading }: ScriptFormProps) {
                           type="file"
                           accept=".doc,.docx,.pdf,.txt"
                           className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                          {...fileRef}
-                          onChange={onFileChange}
+                          onChange={(e) => {
+                            const files = e.target.files;
+                            if (files && files.length > 0) {
+                              field.onChange(files);
+                              setFileName(files[0].name);
+                            } else {
+                              field.onChange(null);
+                              setFileName(null);
+                            }
+                          }}
                         />
                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                           {fileName ? (
