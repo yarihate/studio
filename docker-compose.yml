@@ -47,6 +47,7 @@ services:
       context: ./comfyui
       dockerfile: Dockerfile
     container_name: comfyui
+    init: true
     ports:
       - "8000:8000"
     volumes:
