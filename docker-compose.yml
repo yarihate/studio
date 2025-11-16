@@ -13,6 +13,8 @@ services:
     env_file:
       - .env.docker
     command: npm run dev
+    depends_on:
+      - ollama
 
   ollama:
     image: ollama/ollama
@@ -21,6 +23,14 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    command: >
+      sh -c "
+        ollama serve &
+        sleep 5 &&
+        ollama pull hf.co/unsloth/Qwen3-14B-GGUF:Q5_K_M &&
+        ollama pull hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M &&
+        wait
+      "
 
 volumes:
   ollama_data:
