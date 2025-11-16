@@ -1,22 +1,20 @@
-# Используем официальный образ Node.js 20
-FROM node:20-slim
+# Use an official Node.js runtime as a parent image
+FROM node:20
 
-# Устанавливаем рабочую директорию в контейнере
+# Set the working directory in the container
 WORKDIR /app
 
-# Копируем package.json и устанавливаем зависимости
-# Используем --frozen-lockfile для консистентных установок
-COPY package.json ./
+# Copy package.json and package-lock.json (if available)
+COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
-# Копируем остальной код приложения
+# Copy the rest of the application code
 COPY . .
 
-# Собираем приложение для продакшена
-RUN npm run build
-
-# Порт, на котором будет работать приложение
+# Make port 9002 available to the world outside this container
 EXPOSE 9002
 
-# Команда для запуска приложения
-CMD ["npm", "start"]
+# Define the command to run your app
+CMD ["npm", "run", "dev"]
