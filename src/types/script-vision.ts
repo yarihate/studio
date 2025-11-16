@@ -5,6 +5,7 @@ export type SubScene = {
   camera_hint: string;
   props: string[];
   dialogue_excerpt: string;
+  comment?: string;
 };
 
 export type Scene = {
@@ -18,6 +19,7 @@ export type Scene = {
     environment: string;
   };
   subscenes: SubScene[];
+  comment?: string;
 };
 
 export interface SketchImage {

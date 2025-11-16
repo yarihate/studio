@@ -300,6 +300,29 @@ export default function HomePage() {
     });
   };
 
+  const handleCommentChange = (sceneId: string, subsceneId: string | null, text: string) => {
+    setScenes(prevScenes =>
+      prevScenes.map(scene => {
+        if (scene.scene_id === sceneId) {
+          if (subsceneId) {
+            // It's a subscene comment
+            const updatedSubscenes = scene.subscenes.map(subscene => {
+              if (subscene.subscene_id === subsceneId) {
+                return { ...subscene, comment: text };
+              }
+              return subscene;
+            });
+            return { ...scene, subscenes: updatedSubscenes };
+          } else {
+            // It's a scene comment
+            return { ...scene, comment: text };
+          }
+        }
+        return scene;
+      })
+    );
+  };
+
   const selectedScene = scenes.find((s) => s.scene_id === selectedSceneId);
   
   if (scenes.length === 0) {
@@ -348,6 +371,7 @@ export default function HomePage() {
               onSelectSketch={handleSelectSketch}
               onDownloadSelectedSketches={handleDownloadSelectedSketches}
               onInsertSketch={handleOpenInsertModal}
+              onCommentChange={handleCommentChange}
             />
           </main>
         </SidebarInset>

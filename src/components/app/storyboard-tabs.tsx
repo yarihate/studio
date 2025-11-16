@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw } from 'lucide-react';
+import { Download, Sparkles, Film, Plus, Wand, Loader2, Camera, User, Clock, Drama, Quote, MapPin, Edit, RefreshCw, MessageSquare } from 'lucide-react';
 import type {
   Scene,
   Sketch,
@@ -51,6 +51,7 @@ type StoryboardTabsProps = {
   selectedSketchUrls: string[];
   onSelectSketch: (imageUrl: string) => void;
   onDownloadSelectedSketches: () => void;
+  onCommentChange: (sceneId: string, subsceneId: string | null, text: string) => void;
 };
 
 
@@ -107,6 +108,7 @@ export function StoryboardTabs({
   selectedSketchUrls,
   onSelectSketch,
   onDownloadSelectedSketches,
+  onCommentChange,
 }: StoryboardTabsProps) {
   if (!scene) {
     return (
@@ -156,6 +158,18 @@ export function StoryboardTabs({
             <DetailItem label="Время" value={scene.time_period} icon={Clock} />
             <DetailItem label="Локация" value={scene.location?.place} icon={MapPin} />
           </div>
+           <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <h4 className="font-semibold text-sm text-foreground/80">Комментарии к сцене</h4>
+            </div>
+            <Textarea
+              placeholder="Добавьте ваши заметки к сцене здесь..."
+              value={scene.comment || ''}
+              onChange={(e) => onCommentChange(scene.scene_id, null, e.target.value)}
+              className="text-sm"
+            />
+          </div>
           <div className="space-y-4">
             <h3 className="text-lg font-semibold font-headline">Под-сцены</h3>
             {scene.subscenes.map((sub, index) => (
@@ -167,6 +181,19 @@ export function StoryboardTabs({
                   <DetailItem label="Камера" value={sub.camera_hint} icon={Camera} />
                   <DetailItem label="Реквизит" value={sub.props} />
                   {sub.dialogue_excerpt && <DetailItem label="Диалог" value={`"${sub.dialogue_excerpt}"`} icon={Quote} />}
+                </div>
+                <div className="space-y-2 mt-4">
+                   <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <h4 className="font-semibold text-xs text-foreground/80">Комментарии к под-сцене</h4>
+                  </div>
+                  <Textarea
+                    placeholder="Добавьте ваши заметки к под-сцене здесь..."
+                    value={sub.comment || ''}
+                    onChange={(e) => onCommentChange(scene.scene_id, sub.subscene_id, e.target.value)}
+                    className="text-sm"
+                    rows={2}
+                  />
                 </div>
               </div>
             ))}
