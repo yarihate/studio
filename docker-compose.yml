@@ -16,6 +16,8 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+      comfyui:
+        condition: service_started
 
   ollama:
     image: ollama/ollama
@@ -40,5 +42,23 @@ services:
       timeout: 5s
       retries: 60
 
+  comfyui:
+    build:
+      context: ./comfyui
+      dockerfile: Dockerfile
+    container_name: comfyui
+    ports:
+      - "8000:8000"
+    volumes:
+      - comfyui_models:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
 volumes:
   ollama_data:
+  comfyui_models:
