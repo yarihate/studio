@@ -12,21 +12,24 @@ import { translateToEnglish } from './translate-to-english';
 const COMFYUI_URL = 'http://comfyui:8000/prompt';
 const COMFYUI_OUTPUT_URL = 'http://comfyui:8000/view';
 
-// This is the specific workflow for Detailed Qwen-Image generation.
+// This is the specific workflow for Detailed Wan 2.2-based image generation.
 const COMFYUI_WORKFLOW_TEMPLATE = {
     "client_id":"088a66ccf953490db40dfef8add0c1b7",
     "prompt":{
-        "60":{"inputs":{"filename_prefix":"ComfyUI_Detailed","images":["75:8",0]},"class_type":"SaveImage"},
-        "75:58":{"inputs":{"width":1024,"height":1024,"batch_size":1},"class_type":"EmptySD3LatentImage"},
-        "75:7":{"inputs":{"text":"","clip":["75:38",0]},"class_type":"CLIPTextEncode"},
-        "75:66":{"inputs":{"shift":3.1,"model":["75:73",0]},"class_type":"ModelSamplingAuraFlow"},
-        "75:8":{"inputs":{"samples":["75:3",0],"vae":["75:39",0]},"class_type":"VAEDecode"},
-        "75:37":{"inputs":{"unet_name":"qwen_image_fp8_e4m3fn.safetensors","weight_dtype":"default"},"class_type":"UNETLoader"},
-        "75:6":{"inputs":{"text":"a photo of a cat","clip":["75:38",0]},"class_type":"CLIPTextEncode"},
-        "75:73":{"inputs":{"lora_name":"Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors","strength_model":1,"model":["75:37",0]},"class_type":"LoraLoaderModelOnly"},
-        "75:38":{"inputs":{"clip_name":"qwen_2.5_vl_7b_fp8_scaled.safetensors","type":"qwen_image","device":"default"},"class_type":"CLIPLoader"},
-        "75:39":{"inputs":{"vae_name":"qwen_image_vae.safetensors"},"class_type":"VAELoader"},
-        "75:3":{"inputs":{"seed":1125488487853216,"steps":5,"cfg":1,"sampler_name":"euler","scheduler":"simple","denoise":1,"model":["75:66",0],"positive":["75:6",0],"negative":["75:7",0],"latent_image":["75:58",0]},"class_type":"KSampler"}
+        "2":{"inputs":{"samples":["91",0],"vae":["14",0]},"class_type":"VAEDecode"},
+        "11":{"inputs":{"text":"色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走\nbad anatomy, wrong anatomy, extra limb, floating limbs, bad hands, extra hands, bad eyes, missing arms, extra legs, fused fingers, too many fingers, ugly, deformed, extra digit, disconnected limbs, mutation, amputation","clip":["81",0]},"class_type":"CLIPTextEncode"},
+        "14":{"inputs":{"vae_name":"wan_2.1_vae.safetensors"},"class_type":"VAELoader"},
+        "23":{"inputs":{"text":"A young woman with short hair","clip":["81",0]},"class_type":"CLIPTextEncode"},
+        "42":{"inputs":{"filename_prefix":"ComfyUI_HighlyDetailed","images":["2",0]},"class_type":"SaveImage"},
+        "81":{"inputs":{"clip_name":"umt5xxl-encoder-q8_0.gguf","type":"wan"},"class_type":"CLIPLoaderGGUF"},
+        "91":{"inputs":{"add_noise":"enable","noise_seed":1038410401608727,"steps":10,"cfg":1,"sampler_name":"euler","scheduler":"beta","start_at_step":3,"end_at_step":10,"return_with_leftover_noise":"disable","model":["128",0],"positive":["23",0],"negative":["11",0],"latent_image":["111",0]},"class_type":"KSamplerAdvanced"},
+        "93":{"inputs":{"unet_name":"Wan2.2-T2V-A14B-LowNoise-Q8_0.gguf"},"class_type":"UnetLoaderGGUF"},
+        "94":{"inputs":{"sage_attention":"auto","model":["93",0]},"class_type":"PathchSageAttentionKJ"},
+        "111":{"inputs":{"add_noise":"enable","noise_seed":348253842978113,"steps":2,"cfg":1.5,"sampler_name":"euler","scheduler":"beta","start_at_step":0,"end_at_step":2,"return_with_leftover_noise":"disable","model":["94",0],"positive":["23",0],"negative":["11",0],"latent_image":["134",0]},"class_type":"KSamplerAdvanced"},
+        "128":{"inputs":{"shift":1.0000000000000002,"model":["129",0]},"class_type":"ModelSamplingSD3"},
+        "129":{"inputs":{"nag_scale":50.000000000000014,"nag_alpha":0.2700000000000001,"nag_tau":3.000000000000001,"input_type":"default","model":["132",0],"conditioning":["11",0]},"class_type":"WanVideoNAG"},
+        "132":{"inputs":{"lora_name":"Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors","strength_model":1.0000000000000002,"model":["94",0]},"class_type":"LoraLoaderModelOnly"},
+        "134":{"inputs":{"width":1024,"height":1024,"length":1,"batch_size":1},"class_type":"EmptyHunyuanLatentVideo"}
     }
 };
 
@@ -38,27 +41,36 @@ export interface ShotDetail {
 
 export interface GenerateDetailedImagesInput {
   shotDetails: ShotDetail[];
-  style: ImageStyle; // style is kept for type consistency but not used in this new workflow
+  style: ImageStyle;
 }
 
 export interface GenerateDetailedImagesOutput {
   images: SketchImage[];
 }
 
+const STYLE_SNIPPETS: Record<NonNullable<ImageStyle>, string> = {
+  'Hyper-Realistic Natural': 'hyper-realistic portrait photography, natural lighting, high dynamic range, lifelike skin texture, detailed eyes and hair, minimal color grading, soft shadows, shallow depth of field, shot on high-end mirrorless camera',
+  'Editorial / Fashion Cinematic': 'fashion editorial photography, cinematic soft lighting, glossy highlights, refined color palette, subtle professional retouching, high-end wardrobe styling, medium-format camera depth and clarity',
+  'Filmic / 35mm Aesthetic': 'cinematic 35mm film aesthetic, soft ambient lighting, subtle film grain, warm tones, analog texture',
+};
+
 async function getImagesFromComfyUI(promptText: string): Promise<string> {
   const requestBody = JSON.parse(JSON.stringify(COMFYUI_WORKFLOW_TEMPLATE));
 
-  // Update the positive prompt in the workflow
-  if (requestBody.prompt && requestBody.prompt['75:6'] && requestBody.prompt['75:6'].inputs) {
-    requestBody.prompt['75:6'].inputs.text = promptText;
+  // Update the positive prompt in the workflow (node "23")
+  if (requestBody.prompt && requestBody.prompt['23'] && requestBody.prompt['23'].inputs) {
+    requestBody.prompt['23'].inputs.text = promptText;
   }
 
-  // Set a random seed for variety
-  if (requestBody.prompt && requestBody.prompt['75:3'] && requestBody.prompt['75:3'].inputs) {
-    requestBody.prompt['75:3'].inputs.seed = Math.floor(Math.random() * 1e15);
+  // Set random seeds for variety
+  if (requestBody.prompt && requestBody.prompt['91'] && requestBody.prompt['91'].inputs) {
+    requestBody.prompt['91'].inputs.noise_seed = Math.floor(Math.random() * 1e15);
+  }
+  if (requestBody.prompt && requestBody.prompt['111'] && requestBody.prompt['111'].inputs) {
+    requestBody.prompt['111'].inputs.noise_seed = Math.floor(Math.random() * 1e15);
   }
 
-  console.log('Sending to ComfyUI for detailed image:', JSON.stringify(requestBody, null, 2));
+  console.log('Sending to ComfyUI for detailed image (Wan 2.2):', JSON.stringify(requestBody, null, 2));
 
   const response = await fetch(COMFYUI_URL, {
     method: 'POST',
@@ -95,7 +107,7 @@ async function getImagesFromComfyUI(promptText: string): Promise<string> {
         const historyJson = await historyResponse.json();
         if (historyJson[promptId] && historyJson[promptId].outputs) {
           const outputs = historyJson[promptId].outputs;
-          const saveImageNodeOutput = outputs['60']; // Node ID for "Save Image"
+          const saveImageNodeOutput = outputs['42']; // Node ID for "Save Image"
 
           if (saveImageNodeOutput && saveImageNodeOutput.images && saveImageNodeOutput.images.length > 0) {
             const imageData = saveImageNodeOutput.images[0];
@@ -128,18 +140,25 @@ async function getImagesFromComfyUI(promptText: string): Promise<string> {
 export async function generateDetailedImages(
   input: GenerateDetailedImagesInput
 ): Promise<GenerateDetailedImagesOutput> {
-  console.log('Generating detailed images for shots via ComfyUI (Qwen):', input);
+  console.log('Generating detailed images for shots via ComfyUI (Wan 2.2):', input);
 
   const constructedPrompts = input.shotDetails.map(detail => {
-    let prompt = `${detail.description}, in ${detail.location}`;
+    let basePrompt = `${detail.description}, in ${detail.location}`;
     if (detail.props.length > 0) {
-      prompt += `, with props: ${detail.props.join(', ')}`;
+      basePrompt += `, with props: ${detail.props.join(', ')}`;
     }
-    return prompt;
+    return basePrompt;
   });
 
   const translatedPromises = constructedPrompts.map(desc => translateToEnglish(desc));
-  const finalPrompts = await Promise.all(translatedPromises);
+  const translatedBasePrompts = await Promise.all(translatedPromises);
+  
+  const finalPrompts = translatedBasePrompts.map(basePrompt => {
+      if(input.style && STYLE_SNIPPETS[input.style]) {
+          return `${basePrompt}, ${STYLE_SNIPPETS[input.style]}`;
+      }
+      return basePrompt;
+  });
   
   const imagePromises = finalPrompts.map(async (prompt, index) => {
     const imageUrl = await getImagesFromComfyUI(prompt);

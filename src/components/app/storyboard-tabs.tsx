@@ -528,6 +528,17 @@ export function StoryboardTabs({
                     description="Выберите стиль и нажмите кнопку, чтобы сгенерировать фотореалистичные изображения для этой сцены."
                 >
                     <div className="flex flex-col items-center gap-4">
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {(['Hyper-Realistic Natural', 'Editorial / Fashion Cinematic', 'Filmic / 35mm Aesthetic'] as const).map(style => (
+                                <Button
+                                    key={style}
+                                    variant={selectedImageStyle === style ? 'default' : 'secondary'}
+                                    onClick={() => onImageStyleChange(selectedImageStyle === style ? null : style)}
+                                >
+                                    {style}
+                                </Button>
+                            ))}
+                        </div>
                          <Button onClick={() => onGenerateHighlyDetailed()} size="lg">
                             <Sparkles className="mr-2 h-4 w-4" />
                             Создать изображения
