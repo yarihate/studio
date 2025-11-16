@@ -6,7 +6,8 @@
  */
 
 // We will use the same Ollama configuration as the scene extraction flow.
-const OLLAMA_URL = 'http://localhost:11434/api/generate';
+const OLLAMA_BASE_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const OLLAMA_URL = `${OLLAMA_BASE_URL}/api/generate`;
 const OLLAMA_MODEL = 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M';
 
 const PROMPT_TEMPLATE = `/no_think You are an expert translator. Your task is to translate the following Russian text to English.

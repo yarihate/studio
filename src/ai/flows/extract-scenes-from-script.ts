@@ -13,7 +13,8 @@ export interface ExtractScenesFromScriptInput {
   scriptContent: string;
 }
 
-const OLLAMA_URL = 'http://localhost:11434/api/generate';
+const OLLAMA_BASE_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const OLLAMA_URL = `${OLLAMA_BASE_URL}/api/generate`;
 const OLLAMA_MODEL = 'hf.co/unsloth/Qwen3-14B-GGUF:Q5_K_M';
 
 const PROMPT_TEMPLATE = `You are a film scene extraction and structuring AI.
