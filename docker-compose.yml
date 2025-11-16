@@ -14,5 +14,17 @@ services:
       - /app/.next
     environment:
       - NODE_ENV=development
-    # Переопределяем команду для запуска в режиме разработки с hot-reload
     command: npm run dev
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  ollama_data:
